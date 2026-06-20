@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +15,7 @@ namespace TechStore.Repository.Repositories
         private readonly ApplicationDbContext _context;
         private IProductRepository _products;
         private IGenericRepository<Category> _categories;
+        private IOrderRepository _orders;
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -26,6 +27,9 @@ namespace TechStore.Repository.Repositories
 
         public IGenericRepository<Category> Categories =>
              _categories ??= new GenericRepository<Category>(_context);
+
+        public IOrderRepository Orders =>
+             _orders ??= new OrderRepository(_context);
 
 
         public async Task<int> CompleteAsync()

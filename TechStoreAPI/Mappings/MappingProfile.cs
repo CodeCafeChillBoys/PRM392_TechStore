@@ -19,6 +19,10 @@ namespace TechStoreAPI.Mappings
             CreateMap<Category, CategoryResponseDTO>();
             CreateMap<Product, ProductResponseDTO>()
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
+
+            CreateMap<Order, OrderResponseDTO>();
+            CreateMap<OrderDetail, OrderDetailResponseDTO>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null));
         }
     }
 
