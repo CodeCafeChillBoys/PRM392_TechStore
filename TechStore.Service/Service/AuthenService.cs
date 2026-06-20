@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
+using TechStore.Domain.DTOs.Request;
+using TechStore.Domain.DTOs.Respone;
 using TechStore.Domain.Models;
 using TechStore.Repository.IRepositories;
-using TechStore.Service.DTO.Request;
-using TechStore.Service.DTO.Respone;
 using TechStore.Service.IService;
 
 namespace TechStore.Service.Service

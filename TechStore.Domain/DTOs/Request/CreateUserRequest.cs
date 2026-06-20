@@ -1,6 +1,6 @@
 using TechStore.Domain.Enum;
 
-namespace TechStore.Service.DTO.Request
+namespace TechStore.Domain.DTOs.Request
 {
     public class CreateUserRequest
     {

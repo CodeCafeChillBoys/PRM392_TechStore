@@ -1,5 +1,5 @@
 
-namespace TechStore.Service.DTO.Respone
+namespace TechStore.Domain.DTOs.Respone
 {
     public class ApiResponse<T>
     {

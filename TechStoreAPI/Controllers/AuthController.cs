@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using TechStore.Service.DTO.Request;
-using TechStore.Service.DTO.Respone;
+using TechStore.Domain.DTOs.Request;
+using TechStore.Domain.DTOs.Respone;
 using TechStore.Service.IService;
 
 namespace TechStoreAPI.Controllers
@@ -22,7 +17,7 @@ namespace TechStoreAPI.Controllers
             _authService = authService;
         }
         [HttpPost("login")]
-        public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] TechStore.Service.DTO.Request.LoginRequest request)
+        public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] LoginRequest request)
         {
             var result = await _authService.LoginAsync(request);
             if (result == null || !result.success)

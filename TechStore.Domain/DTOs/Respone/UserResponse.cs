@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace TechStore.Service.DTO.Respone
+namespace TechStore.Domain.DTOs.Respone
 {
     public class UserResponse
     {

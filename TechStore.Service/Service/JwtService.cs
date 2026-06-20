@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using TechStore.Service.DTO.Request;
+using TechStore.Domain.DTOs.Request;
 using TechStore.Service.IService;
 
 namespace TechStore.Service.Service

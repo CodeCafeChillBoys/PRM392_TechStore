@@ -1,6 +1,6 @@
 
 
-namespace TechStore.Service.DTO.Request
+namespace TechStore.Domain.DTOs.Request
 {
     public class LoginRequest
     {

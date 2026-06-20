@@ -1,5 +1,7 @@
-using TechStore.Service.DTO.Request;
-using TechStore.Service.DTO.Respone;
+
+
+using TechStore.Domain.DTOs.Request;
+using TechStore.Domain.DTOs.Respone;
 
 namespace TechStore.Service.IService
 {
