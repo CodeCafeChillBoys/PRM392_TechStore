@@ -7,7 +7,9 @@ using TechStore.Domain.Models;
 
 namespace TechStore.Repository.IRepositories
 {
-    public interface IUnitOfWork : IDisposable
+    public interface IProductRepository : IGenericRepository<Product>
     {
+        Task<IEnumerable<Product>> GetProductsWithCategoryAsync();
+        Task<IEnumerable<Product>> GetProductsByBrandAsync(string brand);
     }
 }
