@@ -22,6 +22,8 @@ namespace TechStoreAPI.config
             services.AddScoped(
               typeof(IGenericRepository<>),
               typeof(GenericRepository<>));
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<ICategoryService, CategoryService>();
 
             return services;
         }

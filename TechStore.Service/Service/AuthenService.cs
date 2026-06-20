@@ -40,7 +40,7 @@ namespace TechStore.Service.Service
                 ExpiryDate = DateTime.UtcNow.AddDays(double.Parse(_configuration.GetSection("Jwt")["RefreshTokenExpirationDays"] ?? "7")),
                 IsRevoked = false
             });
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
 
             return new ApiResponse<LoginResponse>
             {
@@ -103,7 +103,7 @@ namespace TechStore.Service.Service
                 ExpiryDate = DateTime.UtcNow.AddDays(double.Parse(_configuration.GetSection("Jwt")["RefreshTokenExpirationDays"] ?? "7")),
                 IsRevoked = false
             });
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
             return new ApiResponse<LoginResponse>
             {
                 success = true,
@@ -144,7 +144,7 @@ namespace TechStore.Service.Service
             };
 
             await _unitOfWork.Users.AddAsync(newUser);
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
 
             return new ApiResponse<UserResponse>
             {
