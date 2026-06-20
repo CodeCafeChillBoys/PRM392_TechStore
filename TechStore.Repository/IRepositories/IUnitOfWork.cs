@@ -8,5 +8,8 @@ namespace TechStore.Repository.IRepositories
 {
     public interface IUnitOfWork : IDisposable
     {
+        IUserRepositories Users { get; }
+        IRefreshTokenRepositories RefreshTokens { get; }
+        public Task<int> SaveChangesAsync();
     }
 }

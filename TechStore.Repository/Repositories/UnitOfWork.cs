@@ -1,10 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TechStore.Repository.Data;
+﻿using TechStore.Repository.Data;
 using TechStore.Repository.IRepositories;
 
 namespace TechStore.Repository.Repositories
@@ -12,14 +6,28 @@ namespace TechStore.Repository.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly ApplicationDbContext _context;
-        public UnitOfWork(ApplicationDbContext context)
+
+        public IUserRepositories Users { get; }
+
+        public IRefreshTokenRepositories RefreshTokens { get; }
+
+        public UnitOfWork(ApplicationDbContext context, IUserRepositories users, IRefreshTokenRepositories refreshTokens)
         {
             _context = context;
+            Users = users;
+            RefreshTokens = refreshTokens;
         }
+
+
         public void Dispose()
         {
             _context.Dispose();
             GC.SuppressFinalize(this);
+        }
+
+        public async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
         }
     }
 }
