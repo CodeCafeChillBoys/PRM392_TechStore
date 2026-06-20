@@ -14,6 +14,7 @@ namespace TechStore.Repository.IRepositories
         IProductRepository Products { get; }
         IGenericRepository<Category> Categories { get; }
         IOrderRepository Orders { get; }
+        IGenericRepository<TwoFactorSession> TwoFactorSessions { get; }
         Task<int> CompleteAsync();
     }
 }
