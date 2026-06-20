@@ -16,10 +16,14 @@ namespace TechStore.Repository.Repositories
         private IProductRepository _products;
         private IGenericRepository<Category> _categories;
         private IOrderRepository _orders;
+        public IUserRepositories Users { get; }
+        public IRefreshTokenRepositories RefreshTokens { get; }
 
-        public UnitOfWork(ApplicationDbContext context)
+        public UnitOfWork(ApplicationDbContext context, IUserRepositories users, IRefreshTokenRepositories refreshTokens)
         {
             _context = context;
+            Users = users;
+            RefreshTokens = refreshTokens;
         }
 
         public IProductRepository Products =>

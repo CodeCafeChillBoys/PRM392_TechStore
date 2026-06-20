@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Domain.Models;
 
@@ -20,7 +16,15 @@ namespace TechStore.Repository.Data
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<ProductSpecification> ProductSpecifications { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .HasConversion<string>();
 
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }

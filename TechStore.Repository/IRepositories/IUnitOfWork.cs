@@ -9,6 +9,8 @@ namespace TechStore.Repository.IRepositories
 {
     public interface IUnitOfWork : IDisposable
     {
+        IUserRepositories Users { get; }
+        IRefreshTokenRepositories RefreshTokens { get; }
         IProductRepository Products { get; }
         IGenericRepository<Category> Categories { get; }
         IOrderRepository Orders { get; }
