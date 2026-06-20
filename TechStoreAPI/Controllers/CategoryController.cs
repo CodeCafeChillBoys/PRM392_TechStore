@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
@@ -21,6 +22,7 @@ namespace TechStoreAPI.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<CategoryResponseDTO>>> GetCategories()
         {
             var categories = await _categoryService.GetAllCategoriesAsync();
@@ -28,7 +30,8 @@ namespace TechStoreAPI.Controllers
             return Ok(response);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}")] 
+        [AllowAnonymous]
         public async Task<ActionResult<CategoryResponseDTO>> GetCategory(Guid id)
         {
             var category = await _categoryService.GetCategoryByIdAsync(id);
@@ -38,6 +41,7 @@ namespace TechStoreAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Staff")]
         public async Task<ActionResult<CategoryResponseDTO>> CreateCategory(CategoryDTO categoryDto)
         {
             var newCategory = _mapper.Map<Category>(categoryDto);
@@ -47,6 +51,7 @@ namespace TechStoreAPI.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> UpdateCategory(Guid id, CategoryDTO categoryDto)
         {
             var existingCategory = await _categoryService.GetCategoryByIdAsync(id);
@@ -59,6 +64,7 @@ namespace TechStoreAPI.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> DeleteCategory(Guid id)
         {
             var category = await _categoryService.GetCategoryByIdAsync(id);
