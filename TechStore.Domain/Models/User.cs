@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using TechStore.Domain.Enum;
 
 namespace TechStore.Domain.Models
 {
@@ -25,7 +26,7 @@ namespace TechStore.Domain.Models
         public string? Address { get; set; }
 
         [Required]
-        public string Role { get; set; } = "Customer";
+        public Role Role { get; set; } = Role.Customer;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
