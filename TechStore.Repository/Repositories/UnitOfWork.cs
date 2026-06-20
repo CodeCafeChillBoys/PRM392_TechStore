@@ -32,15 +32,17 @@ namespace TechStore.Repository.Repositories
         public IGenericRepository<Category> Categories =>
              _categories ??= new GenericRepository<Category>(_context);
 
-        public void Dispose()
-        {
-            _context.Dispose();
-            GC.SuppressFinalize(this);
-        }
 
         public async Task<int> CompleteAsync()
         {
             return await _context.SaveChangesAsync();
+        }
+
+        
+        public void Dispose()
+        {
+            _context.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
