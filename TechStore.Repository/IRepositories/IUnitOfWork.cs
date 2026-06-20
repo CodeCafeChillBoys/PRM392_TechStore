@@ -13,6 +13,7 @@ namespace TechStore.Repository.IRepositories
         IRefreshTokenRepositories RefreshTokens { get; }
         IProductRepository Products { get; }
         IGenericRepository<Category> Categories { get; }
+        IOrderRepository Orders { get; }
         Task<int> CompleteAsync();
     }
 }

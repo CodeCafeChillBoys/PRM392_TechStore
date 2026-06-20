@@ -13,9 +13,9 @@ namespace TechStore.Repository.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly ApplicationDbContext _context;
-        private IProductRepository? _products;
-        private IGenericRepository<Category>? _categories;
-
+        private IProductRepository _products;
+        private IGenericRepository<Category> _categories;
+        private IOrderRepository _orders;
         public IUserRepositories Users { get; }
         public IRefreshTokenRepositories RefreshTokens { get; }
 
@@ -32,13 +32,15 @@ namespace TechStore.Repository.Repositories
         public IGenericRepository<Category> Categories =>
              _categories ??= new GenericRepository<Category>(_context);
 
+        public IOrderRepository Orders =>
+             _orders ??= new OrderRepository(_context);
+
 
         public async Task<int> CompleteAsync()
         {
             return await _context.SaveChangesAsync();
         }
 
-        
         public void Dispose()
         {
             _context.Dispose();
