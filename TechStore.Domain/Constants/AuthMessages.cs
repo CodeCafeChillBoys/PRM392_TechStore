@@ -14,7 +14,8 @@ namespace TechStore.Domain.Constants
         
         public const string InvalidCredentials = "Email hoặc mật khẩu không chính xác.";
         public const string AuthCodeSent = "Mã xác thực đã được gửi về email của bạn.";
-        public const string LinkSent = "Liên kết xác thực đã được gửi về email của bạn.";
+        public const string SessionCreated = "Phiên đăng nhập đã được khởi tạo. Vui lòng chọn phương thức xác thực.";
+        public const string EmailLinkSentSuccess = "Liên kết xác thực đăng nhập đã được gửi về email của bạn.";
         
         public const string InvalidVerifyToken = "Mã xác thực link không hợp lệ.";
         public const string VerifyLinkExpired = "Liên kết xác thực đã hết hạn.";

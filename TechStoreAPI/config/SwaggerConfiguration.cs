@@ -6,7 +6,12 @@ namespace TechStoreAPI.config
         {
             services.AddSwaggerGen(options =>
             {
-
+                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, xmlFile);
+                if (System.IO.File.Exists(xmlPath))
+                {
+                    options.IncludeXmlComments(xmlPath);
+                }
                 // JWT Authentication
                 options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {

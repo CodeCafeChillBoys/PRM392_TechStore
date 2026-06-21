@@ -158,18 +158,10 @@ namespace TechStore.Service.Service
             await _unitOfWork.LoginSessions.AddAsync(session);
             await _unitOfWork.CompleteAsync();
 
-            var apiDomain = _configuration.GetSection("Jwt")["Issuer"] ?? "http://localhost:5173";
-            var verifyDeviceLink = $"{apiDomain}/api/auth/verify-device?token={verifyToken}";
-            var sendOtpLink = $"{apiDomain}/api/auth/send-otp?token={verifyToken}";
-
-            var emailBody = EmailTemplates.GetLoginVerificationOptionsEmailBody(user.FullName, verifyDeviceLink, sendOtpLink);
-
-            await _emailService.SendEmailAsync(user.Email, EmailTemplates.LoginVerificationSubject, emailBody);
-
             return new ApiResponse<TwoFactorLoginResponse>
             {
                 success = true,
-                message = AuthMessages.LinkSent,
+                message = AuthMessages.SessionCreated,
                 Data = new TwoFactorLoginResponse { VerifyToken = verifyToken }
             };
         }

@@ -9,7 +9,7 @@ namespace TechStore.Service.Service
 {
     public partial class AuthenService
     {
-        public async Task<ApiResponse<LoginResponse>> VerifyDeviceAsync(string token)
+        public async Task<ApiResponse<LoginResponse>> VerifyEmailLinkAsync(string token)
         {
             var sessionResult = await GetAndValidateSessionAsync(token, cleanUpIfExpired: true);
             if (!sessionResult.success)
@@ -130,6 +130,55 @@ namespace TechStore.Service.Service
             {
                 success = true,
                 message = AuthMessages.OtpSentSuccess,
+                Data = true
+            };
+        }
+
+        public async Task<ApiResponse<bool>> SendVerifyEmailLinkAsync(string token)
+        {
+            var sessionResult = await GetAndValidateSessionAsync(token, cleanUpIfExpired: true);
+            if (!sessionResult.success)
+            {
+                return new ApiResponse<bool>
+                {
+                    success = false,
+                    message = sessionResult.message,
+                    Data = false
+                };
+            }
+            var session = sessionResult.Data!;
+
+            if (session.Status != "Pending")
+            {
+                return new ApiResponse<bool>
+                {
+                    success = false,
+                    message = AuthMessages.SessionNotPending,
+                    Data = false
+                };
+            }
+
+            var user = await _unitOfWork.Users.GetByIdAsync(session.UserId);
+            if (user == null)
+            {
+                return new ApiResponse<bool>
+                {
+                    success = false,
+                    message = AuthMessages.UserNotFound,
+                    Data = false
+                };
+            }
+
+            var apiDomain = _configuration.GetSection("Jwt")["Issuer"] ?? "http://localhost:5173";
+            var verifyEmailLink = $"{apiDomain}/api/auth/verify-email-link?token={token}";
+
+            var emailBody = EmailTemplates.GetLoginVerificationLinkEmailBody(user.FullName, verifyEmailLink);
+            await _emailService.SendEmailAsync(user.Email, EmailTemplates.LoginVerificationSubject, emailBody);
+
+            return new ApiResponse<bool>
+            {
+                success = true,
+                message = AuthMessages.EmailLinkSentSuccess,
                 Data = true
             };
         }
