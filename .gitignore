@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # Secrets and local configurations
 TechStoreAPI/appsettings.json
+TechStoreAPI/firebase-adminsdk.json

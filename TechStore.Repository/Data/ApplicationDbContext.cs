@@ -20,6 +20,8 @@ namespace TechStore.Repository.Data
 
         public DbSet<TwoFactorSession> TwoFactorSessions { get; set; }
 
+        public DbSet<UserDevice> UserDevices { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()
