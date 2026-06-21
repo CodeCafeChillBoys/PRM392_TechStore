@@ -16,6 +16,7 @@ namespace TechStore.Repository.Repositories
         private IProductRepository _products;
         private IGenericRepository<Category> _categories;
         private IOrderRepository _orders;
+        private ICartRepository _carts;
         public IUserRepositories Users { get; }
         public IRefreshTokenRepositories RefreshTokens { get; }
 
@@ -34,6 +35,9 @@ namespace TechStore.Repository.Repositories
 
         public IOrderRepository Orders =>
              _orders ??= new OrderRepository(_context);
+
+        public ICartRepository Carts =>
+             _carts ??= new CartRepository(_context);
 
 
         public async Task<int> CompleteAsync()
