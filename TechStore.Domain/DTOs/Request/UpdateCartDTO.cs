@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace TechStore.Domain.DTOs
+namespace TechStore.Domain.DTOs.Request
 {
     public class UpdateCartDTO
     {
