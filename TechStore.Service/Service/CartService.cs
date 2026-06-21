@@ -24,11 +24,18 @@ namespace TechStore.Service.Service
 
         public async Task<Cart> AddToCartAsync(AddToCartDTO cartDto)
         {
+            // Kiểm tra tồn kho trước khi thêm
+            var product = await _unitOfWork.Products.GetByIdAsync(cartDto.ProductId);
+            if (product == null) throw new Exception("Sản phẩm không tồn tại!");
+
             // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
             var existingCartItem = await _unitOfWork.Carts.GetCartItemAsync(cartDto.UserId, cartDto.ProductId);
 
             if (existingCartItem != null)
             {
+                if (existingCartItem.Quantity + cartDto.Quantity > product.StockQuantity)
+                    throw new Exception($"Số lượng vượt quá tồn kho. Cửa hàng chỉ còn {product.StockQuantity} sản phẩm.");
+
                 // Đã có thì tăng số lượng
                 existingCartItem.Quantity += cartDto.Quantity;
                 _unitOfWork.Carts.Update(existingCartItem);
@@ -37,6 +44,9 @@ namespace TechStore.Service.Service
             }
             else
             {
+                if (cartDto.Quantity > product.StockQuantity)
+                    throw new Exception($"Số lượng vượt quá tồn kho. Cửa hàng chỉ còn {product.StockQuantity} sản phẩm.");
+
                 // Chưa có thì tạo mới
                 var newCartItem = new Cart
                 {
@@ -55,6 +65,10 @@ namespace TechStore.Service.Service
             var cartItem = await _unitOfWork.Carts.GetByIdAsync(id);
             if (cartItem != null)
             {
+                var product = await _unitOfWork.Products.GetByIdAsync(cartItem.ProductId);
+                if (product != null && updateDto.Quantity > product.StockQuantity)
+                    throw new Exception($"Số lượng vượt quá tồn kho. Cửa hàng chỉ còn {product.StockQuantity} sản phẩm.");
+
                 cartItem.Quantity = updateDto.Quantity;
                 _unitOfWork.Carts.Update(cartItem);
                 await _unitOfWork.CompleteAsync();
