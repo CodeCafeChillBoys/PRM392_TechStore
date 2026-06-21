@@ -10,4 +10,8 @@
     <ProjectReference Include="..\TechStore.Repository\TechStore.Repository.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.11" />
+  </ItemGroup>
+
 </Project>
