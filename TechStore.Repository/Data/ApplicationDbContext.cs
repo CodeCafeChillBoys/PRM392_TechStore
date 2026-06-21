@@ -18,7 +18,9 @@ namespace TechStore.Repository.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
 
-        public DbSet<TwoFactorSession> TwoFactorSessions { get; set; }
+        public DbSet<LoginSession> LoginSessions { get; set; }
+
+        public DbSet<UserDevice> UserDevices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

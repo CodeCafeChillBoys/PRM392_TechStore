@@ -48,18 +48,39 @@ namespace TechStoreAPI.Controllers
             return StatusCode(201, result);
         }
 
-        [HttpGet("verify-link")]
-        public async Task<IActionResult> VerifyLink([FromQuery] string token)
+        [HttpGet("verify-device")]
+        public async Task<IActionResult> VerifyDevice([FromQuery] string token)
         {
-            var result = await _authService.VerifyEmailLinkAsync(token);
+            var result = await _authService.VerifyDeviceAsync(token);
             if (result == null || !result.success)
             {
-                return Content("<h3>Xác thực liên kết không thành công hoặc liên kết đã hết hạn.</h3>", "text/html; charset=utf-8");
+                return Content(TechStore.Domain.Constants.HtmlTemplates.GetVerifyDeviceFailedPage(), "text/html; charset=utf-8");
             }
 
-            // Redirect to Flutter deep link (Custom Scheme)
+            var flutterDeepLink = $"techstore://login-success?accessToken={result.Data!.AccessToken}&refreshToken={result.Data.RefreshToken}&expiresIn={result.Data.ExpiresIn}";
+            return Redirect(flutterDeepLink);
+        }
+
+        [HttpGet("send-otp")]
+        public async Task<IActionResult> SendOtp([FromQuery] string token)
+        {
+            var result = await _authService.SendOtpTriggerAsync(token);
+            if (result == null || !result.success)
+            {
+                return Content(TechStore.Domain.Constants.HtmlTemplates.GetSendOtpFailedPage(), "text/html; charset=utf-8");
+            }
+
             var flutterDeepLink = $"techstore://otp-verify?token={token}";
             return Redirect(flutterDeepLink);
+        }
+
+        [HttpGet("session-status")]
+        public async Task<ActionResult<ApiResponse<LoginResponse>>> GetSessionStatus([FromQuery] string token)
+        {
+            var result = await _authService.GetSessionStatusAsync(token);
+            if (result == null || !result.success)
+                return BadRequest(result);
+            return Ok(result);
         }
 
         [HttpPost("verify-otp")]

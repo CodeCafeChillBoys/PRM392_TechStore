@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TechStore.Repository.Data;
@@ -11,9 +12,11 @@ using TechStore.Repository.Data;
 namespace TechStore.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621005537_AddUserDevicesTable")]
+    partial class AddUserDevicesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -62,52 +65,6 @@ namespace TechStore.Repository.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("TechStore.Domain.Models.LoginSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AccessToken")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ExpiredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("ExpiresIn")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsOtpSent")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("OtpCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("RefreshToken")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("VerifyToken")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("LoginSessions");
                 });
 
             modelBuilder.Entity("TechStore.Domain.Models.Message", b =>
@@ -291,6 +248,42 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.TwoFactorSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsLinkVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOtpVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerifyToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TwoFactorSessions");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -372,17 +365,6 @@ namespace TechStore.Repository.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TechStore.Domain.Models.LoginSession", b =>
-                {
-                    b.HasOne("TechStore.Domain.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("TechStore.Domain.Models.Message", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.User", "Sender")
@@ -447,6 +429,17 @@ namespace TechStore.Repository.Migrations
                 });
 
             modelBuilder.Entity("TechStore.Domain.Models.RefreshToken", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.TwoFactorSession", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.User", "User")
                         .WithMany()
