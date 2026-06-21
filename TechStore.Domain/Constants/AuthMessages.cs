@@ -26,5 +26,8 @@ namespace TechStore.Domain.Constants
         public const string InvalidOtp = "Mã OTP không chính xác.";
         public const string UserNotFound = "Người dùng không tồn tại.";
         public const string LoginSuccess = "Đăng nhập thành công.";
+        public const string SessionNotPending = "Phiên đăng nhập không còn ở trạng thái chờ xác thực.";
+        public const string VerifyDeviceSuccess = "Xác thực thiết bị thành công.";
+        public const string OtpSentSuccess = "Đã gửi mã OTP qua email.";
     }
 }

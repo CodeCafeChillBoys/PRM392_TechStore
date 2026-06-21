@@ -10,7 +10,7 @@ using TechStore.Service.IService;
 
 namespace TechStore.Service.Service
 {
-    public class AuthenService : IAuthService
+    public partial class AuthenService : IAuthService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
@@ -143,27 +143,26 @@ namespace TechStore.Service.Service
                 };
             }
 
-            var otpCode = new Random().Next(100000, 999999).ToString();
             var verifyToken = Guid.NewGuid().ToString();
 
-            var session = new TwoFactorSession
+            var session = new LoginSession
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
-                OtpCode = otpCode,
                 VerifyToken = verifyToken,
-                IsOtpVerified = false,
-                IsLinkVerified = false,
+                Status = "Pending",
+                IsOtpSent = false,
                 ExpiredAt = DateTime.UtcNow.AddMinutes(15)
             };
 
-            await _unitOfWork.TwoFactorSessions.AddAsync(session);
+            await _unitOfWork.LoginSessions.AddAsync(session);
             await _unitOfWork.CompleteAsync();
 
             var apiDomain = _configuration.GetSection("Jwt")["Issuer"] ?? "http://localhost:5173";
-            var verifyLink = $"{apiDomain}/api/auth/verify-link?token={verifyToken}";
+            var verifyDeviceLink = $"{apiDomain}/api/auth/verify-device?token={verifyToken}";
+            var sendOtpLink = $"{apiDomain}/api/auth/send-otp?token={verifyToken}";
 
-            var emailBody = EmailTemplates.GetLoginVerificationEmailBody(user.FullName, verifyLink);
+            var emailBody = EmailTemplates.GetLoginVerificationOptionsEmailBody(user.FullName, verifyDeviceLink, sendOtpLink);
 
             await _emailService.SendEmailAsync(user.Email, EmailTemplates.LoginVerificationSubject, emailBody);
 
@@ -175,66 +174,15 @@ namespace TechStore.Service.Service
             };
         }
 
-        public async Task<ApiResponse<bool>> VerifyEmailLinkAsync(string verifyToken)
+
+        private async Task<ApiResponse<LoginSession>> GetAndValidateSessionAsync(string token, bool cleanUpIfExpired = false)
         {
-            var sessions = await _unitOfWork.TwoFactorSessions.FindAsync(s => s.VerifyToken == verifyToken);
+            var sessions = await _unitOfWork.LoginSessions.FindAsync(s => s.VerifyToken == token);
             var session = sessions.FirstOrDefault();
 
             if (session == null)
             {
-                return new ApiResponse<bool>
-                {
-                    success = false,
-                    message = AuthMessages.InvalidVerifyToken,
-                    Data = false
-                };
-            }
-
-            if (session.ExpiredAt < DateTime.UtcNow)
-            {
-                return new ApiResponse<bool>
-                {
-                    success = false,
-                    message = AuthMessages.VerifyLinkExpired,
-                    Data = false
-                };
-            }
-
-            var user = await _unitOfWork.Users.GetByIdAsync(session.UserId);
-            if (user == null)
-            {
-                return new ApiResponse<bool>
-                {
-                    success = false,
-                    message = AuthMessages.UserNotFound,
-                    Data = false
-                };
-            }
-
-            // Gửi email thứ 2 chứa mã OTP sau khi click link
-            var emailBody = EmailTemplates.GetOtpEmailBody(user.FullName, session.OtpCode);
-            await _emailService.SendEmailAsync(user.Email, EmailTemplates.OtpSubject, emailBody);
-
-            session.IsLinkVerified = true;
-            _unitOfWork.TwoFactorSessions.Update(session);
-            await _unitOfWork.CompleteAsync();
-
-            return new ApiResponse<bool>
-            {
-                success = true,
-                message = AuthMessages.VerifyLinkSuccess,
-                Data = true
-            };
-        }
-
-        public async Task<ApiResponse<LoginResponse>> VerifyOtpAsync(VerifyOtpRequest request)
-        {
-            var sessions = await _unitOfWork.TwoFactorSessions.FindAsync(s => s.VerifyToken == request.VerifyToken);
-            var session = sessions.FirstOrDefault();
-
-            if (session == null)
-            {
-                return new ApiResponse<LoginResponse>
+                return new ApiResponse<LoginSession>
                 {
                     success = false,
                     message = AuthMessages.SessionNotFoundOrInvalid
@@ -243,71 +191,22 @@ namespace TechStore.Service.Service
 
             if (session.ExpiredAt < DateTime.UtcNow)
             {
-                return new ApiResponse<LoginResponse>
+                if (cleanUpIfExpired)
+                {
+                    _unitOfWork.LoginSessions.Remove(session);
+                    await _unitOfWork.CompleteAsync();
+                }
+                return new ApiResponse<LoginSession>
                 {
                     success = false,
                     message = AuthMessages.SessionExpired
                 };
             }
 
-            if (!session.IsLinkVerified)
-            {
-                return new ApiResponse<LoginResponse>
-                {
-                    success = false,
-                    message = AuthMessages.EmailLinkNotVerified
-                };
-            }
-
-            if (session.OtpCode != request.OtpCode)
-            {
-                return new ApiResponse<LoginResponse>
-                {
-                    success = false,
-                    message = AuthMessages.InvalidOtp
-                };
-            }
-
-            var user = await _unitOfWork.Users.GetByIdAsync(session.UserId);
-            if (user == null)
-            {
-                return new ApiResponse<LoginResponse>
-                {
-                    success = false,
-                    message = AuthMessages.UserNotFound
-                };
-            }
-
-            var token = await _jwtService.GenerateToken(new UserRequest
-            {
-                Id = user.Id,
-                Name = user.FullName,
-                Email = user.Email,
-                Role = user.Role
-            });
-
-            var refreshToken = _jwtService.GenerateRefreshToken();
-            await _unitOfWork.RefreshTokens.AddAsync(new RefreshToken
-            {
-                UserId = user.Id,
-                Token = refreshToken,
-                ExpiryDate = DateTime.UtcNow.AddDays(double.Parse(_configuration.GetSection("Jwt")["RefreshTokenExpirationDays"] ?? "7")),
-                IsRevoked = false
-            });
-
-            _unitOfWork.TwoFactorSessions.Remove(session);
-            await _unitOfWork.CompleteAsync();
-
-            return new ApiResponse<LoginResponse>
+            return new ApiResponse<LoginSession>
             {
                 success = true,
-                message = AuthMessages.LoginSuccess,
-                Data = new LoginResponse
-                {
-                    AccessToken = token,
-                    RefreshToken = refreshToken,
-                    ExpiresIn = (int)TimeSpan.FromMinutes(double.Parse(_configuration.GetSection("Jwt")["AccessTokenExpirationMinutes"] ?? "60")).TotalSeconds
-                }
+                Data = session
             };
         }
     }

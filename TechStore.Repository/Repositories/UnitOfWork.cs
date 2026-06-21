@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +16,7 @@ namespace TechStore.Repository.Repositories
         private IProductRepository _products;
         private IGenericRepository<Category> _categories;
         private IOrderRepository _orders;
-        private IGenericRepository<TwoFactorSession> _twoFactorSessions;
+        private IGenericRepository<LoginSession> _loginSessions;
         public IUserRepositories Users { get; }
         public IRefreshTokenRepositories RefreshTokens { get; }
 
@@ -38,8 +38,8 @@ namespace TechStore.Repository.Repositories
         public IOrderRepository Orders =>
              _orders ??= new OrderRepository(_context);
 
-        public IGenericRepository<TwoFactorSession> TwoFactorSessions =>
-             _twoFactorSessions ??= new GenericRepository<TwoFactorSession>(_context);
+        public IGenericRepository<LoginSession> LoginSessions =>
+             _loginSessions ??= new GenericRepository<LoginSession>(_context);
 
         public IGenericRepository<UserDevice> UserDevices =>
      _userDevices ??= new GenericRepository<UserDevice>(_context);
