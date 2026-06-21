@@ -28,6 +28,8 @@ namespace TechStoreAPI.config
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IOrderService, OrderService>();  
+            services.AddScoped<IDeviceService, DeviceService>();
+            services.AddSingleton<INotificationService, NotificationService>();
             
             services.Configure<BrevoSettings>(configuration.GetSection("BrevoSettings"));
             services.AddScoped<IEmailService, BrevoEmailService>();
