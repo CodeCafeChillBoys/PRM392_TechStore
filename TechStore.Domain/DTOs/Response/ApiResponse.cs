@@ -1,5 +1,4 @@
-
-namespace TechStore.Domain.DTOs.Respone
+namespace TechStore.Domain.DTOs.Response
 {
     public class ApiResponse<T>
     {

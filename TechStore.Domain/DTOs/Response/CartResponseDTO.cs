@@ -1,6 +1,6 @@
 using System;
 
-namespace TechStore.Domain.DTOs
+namespace TechStore.Domain.DTOs.Response
 {
     public class CartResponseDTO
     {

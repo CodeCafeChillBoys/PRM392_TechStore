@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TechStore.Domain.DTOs;
+using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.Models;
 
 namespace TechStore.Service.IService
