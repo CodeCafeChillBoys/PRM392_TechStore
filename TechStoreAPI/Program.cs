@@ -23,12 +23,11 @@ builder.Services.AddDependencyInjection();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// Services của teammate
+// Services cho Product, Category, Cart
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICartService, CartService>();
-// Note: IOrderService đã được đăng ký bởi AddServices() ở trên
-// Nếu teammate có IOrderService riêng, hãy comment dòng trên ra
+
 
 // ── Controllers + JSON options ────────────────────────────────────────────
 builder.Services.AddControllers().AddJsonOptions(options =>

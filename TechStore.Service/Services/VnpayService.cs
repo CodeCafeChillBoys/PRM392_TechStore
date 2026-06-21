@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
@@ -12,8 +13,14 @@ using TechStore.Service.IServices;
 namespace TechStore.Service.Services
 {
     /// <summary>
-    /// Implements VNPay Sandbox integration.
-    /// Reference: https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.md
+    /// VNPay Sandbox integration — v2.1.0
+    /// Signing spec: https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.md
+    ///
+    /// CRITICAL signing rule:
+    ///   Sign string  = sorted key=WebUtility.UrlEncode(value) pairs joined by '&'
+    ///   (spaces → '+', special chars → %XX uppercase, same as PHP urlencode)
+    ///   This is what VNPay's backend uses both for VERIFYING the payment request
+    ///   and for BUILDING the return/IPN callback.
     /// </summary>
     public class VnpayService : IVnpayService
     {
@@ -39,6 +46,11 @@ namespace TechStore.Service.Services
             // Amount must be multiplied by 100 (VNPay uses integer, no decimal)
             var amount = ((long)(order.TotalAmount * 100)).ToString();
 
+            // VNPay only accepts IPv4 — map IPv6 loopback to 127.0.0.1
+            var ip = (ipAddress == "::1" || ipAddress == "0:0:0:0:0:0:0:1")
+                ? "127.0.0.1"
+                : ipAddress;
+
             // SortedDictionary ensures alphabetical ordering required for signing
             var vnpParams = new SortedDictionary<string, string>(StringComparer.Ordinal)
             {
@@ -48,7 +60,7 @@ namespace TechStore.Service.Services
                 ["vnp_Amount"]     = amount,
                 ["vnp_CreateDate"] = vnNow.ToString("yyyyMMddHHmmss"),
                 ["vnp_CurrCode"]   = "VND",
-                ["vnp_IpAddr"]     = ipAddress,
+                ["vnp_IpAddr"]     = ip,
                 ["vnp_Locale"]     = "vn",
                 ["vnp_OrderInfo"]  = $"Thanh toan don hang {order.Id}",
                 ["vnp_OrderType"]  = "other",
@@ -57,43 +69,72 @@ namespace TechStore.Service.Services
                 ["vnp_ExpireDate"] = vnNow.AddMinutes(15).ToString("yyyyMMddHHmmss"),
             };
 
-            // Build raw sign data (no URL encoding) then sign
-            var signData   = BuildRawQueryString(vnpParams);
+            // ── Sign: WebUtility.UrlEncode values (spaces → '+'), matching VNPay's PHP backend ──
+            var signData   = BuildSignData(vnpParams);
             var secureHash = HmacSha512(_settings.HashSecret, signData);
 
-            // Build URL-encoded query string for the payment URL
-            var encodedQuery = BuildEncodedQueryString(vnpParams);
+            // ── URL: also use WebUtility.UrlEncode for consistency ──
+            var queryString = BuildUrlQuery(vnpParams);
 
-            return $"{_settings.PaymentUrl}?{encodedQuery}&vnp_SecureHash={secureHash}";
+            return $"{_settings.PaymentUrl}?{queryString}&vnp_SecureHash={secureHash}";
         }
 
         // ─────────────────────────────────────────────────────────────────────
         // VALIDATE SIGNATURE  (IPN / Return URL)
         // ─────────────────────────────────────────────────────────────────────
+        // VNPay builds the return/IPN URL using the same WebUtility.UrlEncode approach.
+        // ASP.NET Core's IQueryCollection auto URL-decodes (+ → space, %20 → space),
+        // losing the encoding info needed to reproduce VNPay's sign string.
+        // Solution: pass Request.QueryString.Value (raw string) so we keep the
+        // original encoded values (e.g. '+') and reproduce the exact same sign string.
         public bool ValidateSignature(
-            IQueryCollection query,
+            string rawQueryString,
             out string responseCode,
             out string transactionId,
             out string orderId)
         {
-            responseCode  = query["vnp_ResponseCode"].ToString();
-            transactionId = query["vnp_TransactionNo"].ToString();
-            orderId       = query["vnp_TxnRef"].ToString();
+            responseCode  = string.Empty;
+            transactionId = string.Empty;
+            orderId       = string.Empty;
 
-            var receivedHash = query["vnp_SecureHash"].ToString();
+            if (string.IsNullOrEmpty(rawQueryString))
+                return false;
 
-            // Rebuild params exactly as VNPay sent them, excluding hash fields
+            // Strip leading '?'
+            if (rawQueryString.StartsWith('?'))
+                rawQueryString = rawQueryString[1..];
+
+            string receivedHash = string.Empty;
+            // Store decoded key → raw (encoded) value for sign reproduction
             var paramDict = new SortedDictionary<string, string>(StringComparer.Ordinal);
-            foreach (var (key, value) in query)
+
+            foreach (var pair in rawQueryString.Split('&', StringSplitOptions.RemoveEmptyEntries))
             {
-                if (key.Equals("vnp_SecureHash", StringComparison.OrdinalIgnoreCase)
-                 || key.Equals("vnp_SecureHashType", StringComparison.OrdinalIgnoreCase))
+                var idx = pair.IndexOf('=');
+                if (idx < 0) continue;
+
+                var rawKey   = pair[..idx];
+                var rawValue = pair[(idx + 1)..];
+                var key      = Uri.UnescapeDataString(rawKey);
+
+                if (key.Equals("vnp_SecureHash", StringComparison.OrdinalIgnoreCase))
+                {
+                    receivedHash = Uri.UnescapeDataString(rawValue);
+                    continue;
+                }
+                if (key.Equals("vnp_SecureHashType", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                paramDict[key] = value.ToString();
+                paramDict[key] = rawValue; // keep raw (encoded) value
             }
 
-            var signData     = BuildRawQueryString(paramDict);
+            // Rebuild output params (decoded for caller use)
+            responseCode  = Decode(paramDict, "vnp_ResponseCode");
+            transactionId = Decode(paramDict, "vnp_TransactionNo");
+            orderId       = Decode(paramDict, "vnp_TxnRef");
+
+            // Reproduce VNPay's sign string from decoded key + raw (encoded) value
+            var signData     = string.Join("&", paramDict.Select(kv => $"{kv.Key}={kv.Value}"));
             var expectedHash = HmacSha512(_settings.HashSecret, signData);
 
             return expectedHash.Equals(receivedHash, StringComparison.OrdinalIgnoreCase);
@@ -103,23 +144,34 @@ namespace TechStore.Service.Services
         // HELPERS
         // ─────────────────────────────────────────────────────────────────────
 
-        /// <summary>Builds raw (non-encoded) key=value&amp;... string for HMAC signing.</summary>
-        private static string BuildRawQueryString(SortedDictionary<string, string> parameters)
-            => string.Join("&", parameters.Select(kv => $"{kv.Key}={kv.Value}"));
+        /// <summary>
+        /// Build sign string: key=WebUtility.UrlEncode(value) joined by '&'.
+        /// Spaces become '+', special chars become %XX (uppercase).
+        /// This matches VNPay's PHP urlencode() signing algorithm.
+        /// </summary>
+        private static string BuildSignData(SortedDictionary<string, string> p)
+            => string.Join("&", p.Select(kv => $"{kv.Key}={WebUtility.UrlEncode(kv.Value)}"));
 
-        /// <summary>Builds URL-encoded key=value&amp;... string for the payment URL.</summary>
-        private static string BuildEncodedQueryString(SortedDictionary<string, string> parameters)
-            => string.Join("&", parameters.Select(
-                kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
+        /// <summary>
+        /// Build URL query string using the same WebUtility.UrlEncode encoding
+        /// so the URL params stay consistent with the sign string.
+        /// </summary>
+        private static string BuildUrlQuery(SortedDictionary<string, string> p)
+            => string.Join("&", p.Select(kv => $"{kv.Key}={WebUtility.UrlEncode(kv.Value)}"));
 
-        /// <summary>Computes HMAC-SHA512 and returns lowercase hex string.</summary>
+        /// <summary>Safely URL-decode a value from the raw param dict.</summary>
+        private static string Decode(SortedDictionary<string, string> d, string key)
+            => d.TryGetValue(key, out var v) ? Uri.UnescapeDataString(v.Replace("+", " ")) : string.Empty;
+
+        /// <summary>HMAC-SHA512 — always 128 hex chars (BitConverter preserves leading zeros).</summary>
         private static string HmacSha512(string key, string data)
         {
             var keyBytes  = Encoding.UTF8.GetBytes(key);
             var dataBytes = Encoding.UTF8.GetBytes(data);
             using var hmac = new HMACSHA512(keyBytes);
-            var hash = hmac.ComputeHash(dataBytes);
-            return Convert.ToHexString(hash).ToLowerInvariant();
+            return BitConverter.ToString(hmac.ComputeHash(dataBytes))
+                               .Replace("-", string.Empty)
+                               .ToLowerInvariant();
         }
     }
 }

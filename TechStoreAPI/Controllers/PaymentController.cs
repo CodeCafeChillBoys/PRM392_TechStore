@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TechStore.Service.IServices;
 
@@ -25,14 +26,14 @@ namespace TechStoreAPI.Controllers
         // ─────────────────────────────────────────────────────────────────────
         // GET /api/payment/vnpay-return
         // VNPay redirects the USER's browser here after payment.
-        // Purpose: Return JSON so mobile FE can show success/failure screen.
-        // NOTE: Do NOT rely solely on this to update DB — use IPN (below).
+        // Returns a JSON response containing order status details.
+        // NOTE: DB update happens here as fallback; IPN is the primary source.
         // ─────────────────────────────────────────────────────────────────────
         [HttpGet("vnpay-return")]
         public async Task<IActionResult> VnpayReturn()
         {
             var isValidSignature = _vnpayService.ValidateSignature(
-                Request.Query,
+                Request.QueryString.Value ?? string.Empty,
                 out var responseCode,
                 out var transactionId,
                 out var orderIdStr);
@@ -40,35 +41,40 @@ namespace TechStoreAPI.Controllers
             if (!isValidSignature)
             {
                 _logger.LogWarning("VNPay Return: invalid signature. Query: {Query}", Request.QueryString);
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Invalid payment signature. Possible tampering detected."
-                });
+                return BadRequest(new { success = false, message = "Chữ ký không hợp lệ. Giao dịch có thể bị giả mạo." });
             }
 
             bool isPaid = responseCode == "00";
+
+            // Parse amount from query (VNPay sends amount * 100)
+            var rawAmount = Request.Query["vnp_Amount"].ToString();
+            var amountDisplay = long.TryParse(rawAmount, out var amtRaw)
+                ? $"{amtRaw / 100:N0} VND"
+                : rawAmount;
+
             _logger.LogInformation(
                 "VNPay Return — OrderId: {OrderId}, ResponseCode: {Code}, TxnId: {TxnId}, Paid: {IsPaid}",
                 orderIdStr, responseCode, transactionId, isPaid);
 
-            // Attempt to parse orderId (may fail if tampered)
             if (!Guid.TryParse(orderIdStr, out var orderId))
-                return BadRequest(new { success = false, message = "Invalid order reference." });
+            {
+                return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ." });
+            }
 
-            // Update DB as a fallback (IPN is primary, this is secondary)
+            // Update DB (fallback — IPN is primary)
             await _orderService.ConfirmVnpayPaymentAsync(orderId, isPaid, transactionId);
 
-            // Return JSON for mobile app WebView to detect and handle
+            var message = isPaid
+                ? "Thanh toán thành công! Đơn hàng của bạn đã được xác nhận."
+                : $"Thanh toán thất bại (mã lỗi: {responseCode}). Đơn hàng đã bị huỷ.";
+
             return Ok(new
             {
-                success         = isPaid,
-                orderId         = orderIdStr,
-                transactionId   = transactionId,
-                responseCode    = responseCode,
-                message         = isPaid
-                    ? "Payment successful! Your order has been confirmed."
-                    : $"Payment failed (code: {responseCode}). Your order has been cancelled."
+                success = isPaid,
+                orderId = orderIdStr,
+                transactionId,
+                amount = amountDisplay,
+                message
             });
         }
 
@@ -81,16 +87,15 @@ namespace TechStoreAPI.Controllers
         [HttpGet("vnpay-ipn")]
         public async Task<IActionResult> VnpayIpn()
         {
-            // VNPay expects these exact JSON responses
-            const string rspCodeOk      = "00";
-            const string rspCodeInvalid = "97"; // Invalid checksum
-            const string rspCodeNotFound = "01"; // Order not found
-            const string rspCodeError   = "99"; // Unknown error
+            const string rspCodeOk       = "00";
+            const string rspCodeInvalid  = "97";
+            const string rspCodeNotFound = "01";
+            const string rspCodeError    = "99";
 
             try
             {
                 var isValidSignature = _vnpayService.ValidateSignature(
-                    Request.Query,
+                    Request.QueryString.Value ?? string.Empty,
                     out var responseCode,
                     out var transactionId,
                     out var orderIdStr);
@@ -120,7 +125,6 @@ namespace TechStoreAPI.Controllers
                     "VNPay IPN processed — OrderId: {OrderId}, TxnId: {TxnId}, Paid: {IsPaid}",
                     orderId, transactionId, isPaid);
 
-                // Must always return this to tell VNPay we received the notification
                 return Ok(new { RspCode = rspCodeOk, Message = "Confirm Success" });
             }
             catch (Exception ex)

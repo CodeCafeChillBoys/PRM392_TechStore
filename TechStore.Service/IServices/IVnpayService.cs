@@ -15,14 +15,16 @@ namespace TechStore.Service.IServices
 
         /// <summary>
         /// Validates the HMAC-SHA512 signature on the VNPay callback query string.
+        /// Pass Request.QueryString.Value (the RAW, URL-encoded query string) so the
+        /// hash is computed over the same encoded representation VNPay uses.
         /// </summary>
-        /// <param name="query">Query parameters from vnpay-return or vnpay-ipn.</param>
+        /// <param name="rawQueryString">Raw query string from Request.QueryString.Value (e.g. "?vnp_Amount=...&vnp_SecureHash=...").</param>
         /// <param name="responseCode">vnp_ResponseCode: "00" = success.</param>
         /// <param name="transactionId">vnp_TransactionNo returned by VNPay.</param>
         /// <param name="orderId">vnp_TxnRef = our Order.Id as string.</param>
         /// <returns>True if the signature is valid (not tampered).</returns>
         bool ValidateSignature(
-            IQueryCollection query,
+            string rawQueryString,
             out string responseCode,
             out string transactionId,
             out string orderId);
