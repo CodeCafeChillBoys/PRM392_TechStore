@@ -60,6 +60,8 @@ namespace TechStore.Service.Service
 
             var expiresIn = (int)TimeSpan.FromMinutes(double.Parse(_configuration.GetSection("Jwt")["AccessTokenExpirationMinutes"] ?? "60")).TotalSeconds;
 
+            await HandleDeviceRegistrationAndNotificationAsync(user, session);
+
             session.Status = "Approved";
             session.AccessToken = accessToken;
             session.RefreshToken = refreshToken;

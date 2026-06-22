@@ -26,6 +26,14 @@ namespace TechStore.Domain.Models
 
         public DateTime ExpiredAt { get; set; }
 
+        public string? DeviceId { get; set; }
+
+        public string? DeviceName { get; set; }
+
+        public string? DeviceType { get; set; }
+
+        public string? FcmToken { get; set; }
+
         // Navigation property
         public User User { get; set; } = null!;
     }

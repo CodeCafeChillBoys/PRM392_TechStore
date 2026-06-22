@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
 using Google.Apis.Auth.OAuth2;
@@ -9,9 +6,9 @@ using TechStore.Service.IService;
 
 namespace TechStore.Service.Service
 {
-    public class NotificationService : INotificationService
+    public class FirebaseNotificationService : IFirebaseNotificationService
     {
-        public NotificationService(IConfiguration configuration)
+        public FirebaseNotificationService(IConfiguration configuration)
         {
             if (FirebaseApp.DefaultInstance == null)
             {

@@ -15,6 +15,20 @@ namespace TechStoreAPI.Controllers
         {
             _authService = authService;
         }
+        /// <summary>
+        /// Đăng nhập bằng google.
+        /// </summary>
+        /// <remarks>
+        /// </remarks>
+        /// <param name="request">Thông tin đăng nhập gồm email và password</param>
+        [HttpPost("google-login")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
+        {
+            var result = await _authService.GoogleLoginAsync(request);
+            if (result == null || !result.success)
+                return BadRequest(result);
+            return Ok(result);
+        }
 
         /// <summary>
         /// Đăng nhập tài khoản bằng Email và Mật khẩu.

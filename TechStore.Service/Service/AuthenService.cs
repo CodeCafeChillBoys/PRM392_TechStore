@@ -16,13 +16,23 @@ namespace TechStore.Service.Service
         private readonly IJwtService _jwtService;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly IUserDeviceService _userDeviceService;
+        private readonly IFirebaseNotificationService _notificationService;
 
-        public AuthenService(IUnitOfWork unitOfWork, IJwtService jwtService, IConfiguration configuration, IEmailService emailService)
+        public AuthenService(
+            IUnitOfWork unitOfWork,
+            IJwtService jwtService,
+            IConfiguration configuration,
+            IEmailService emailService,
+            IUserDeviceService userDeviceService,
+            IFirebaseNotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
             _configuration = configuration;
             _emailService = emailService;
+            _userDeviceService = userDeviceService;
+            _notificationService = notificationService;
         }
 
         public async Task<ApiResponse<LoginResponse>> RefreshTokenAsync(RefreshTokenRequest request)
@@ -152,7 +162,11 @@ namespace TechStore.Service.Service
                 VerifyToken = verifyToken,
                 Status = "Pending",
                 IsOtpSent = false,
-                ExpiredAt = DateTime.UtcNow.AddMinutes(15)
+                ExpiredAt = DateTime.UtcNow.AddMinutes(15),
+                DeviceId = request.DeviceId,
+                DeviceName = request.DeviceName,
+                DeviceType = request.DeviceType,
+                FcmToken = request.FcmToken
             };
 
             await _unitOfWork.LoginSessions.AddAsync(session);
@@ -201,5 +215,51 @@ namespace TechStore.Service.Service
                 Data = session
             };
         }
+
+        private async Task HandleDeviceRegistrationAndNotificationAsync(User user, LoginSession session)
+        {
+            if (!string.IsNullOrEmpty(session.DeviceId))
+            {
+                var registerRequest = new RegisterDeviceRequest
+                {
+                    DeviceId = session.DeviceId,
+                    DeviceName = session.DeviceName ?? string.Empty,
+                    DeviceType = session.DeviceType ?? string.Empty,
+                    FcmToken = session.FcmToken ?? string.Empty
+                };
+
+                // RegisterOrUpdateDeviceAsync returns true if it is a new device
+                bool isNewDevice = await _userDeviceService.RegisterOrUpdateDeviceAsync(user.Id, registerRequest);
+
+                if (isNewDevice)
+                {
+                    // 1. Notify the new device
+                    if (!string.IsNullOrEmpty(session.FcmToken))
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            session.FcmToken,
+                            "Thiết bị mới đã đăng nhập",
+                            $"Tài khoản của bạn vừa được đăng nhập trên thiết bị mới: {session.DeviceName ?? "Không xác định"}"
+                        );
+                    }
+
+                    // 2. Notify other devices
+                    var otherDevices = await _userDeviceService.GetOtherDevicesAsync(user.Id, session.DeviceId);
+                    foreach (var device in otherDevices)
+                    {
+                        if (!string.IsNullOrEmpty(device.FcmToken))
+                        {
+                            await _notificationService.SendNotificationAsync(
+                                device.FcmToken,
+                                "Cảnh báo bảo mật",
+                                $"Tài khoản của bạn vừa đăng nhập trên một thiết bị mới: {session.DeviceName ?? "Không xác định"}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+
     }
 }

@@ -15,5 +15,6 @@ namespace TechStore.Service.IService
         Task<ApiResponse<bool>> SendOtpTriggerAsync(string token);
         Task<ApiResponse<LoginResponse>> VerifyOtpAsync(VerifyOtpRequest request);
         Task<ApiResponse<LoginResponse>> GetSessionStatusAsync(string token);
+        Task<ApiResponse<LoginResponse>> GoogleLoginAsync(GoogleLoginRequest request);
     }
 }

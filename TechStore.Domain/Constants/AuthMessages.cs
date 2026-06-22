@@ -30,5 +30,9 @@ namespace TechStore.Domain.Constants
         public const string SessionNotPending = "Phiên đăng nhập không còn ở trạng thái chờ xác thực.";
         public const string VerifyDeviceSuccess = "Xác thực thiết bị thành công.";
         public const string OtpSentSuccess = "Đã gửi mã OTP qua email.";
+        
+        public const string GoogleConfigMissing = "Cấu hình Google ClientId trên server chưa được thiết lập.";
+        public const string GoogleInvalidToken = "Token Google không hợp lệ hoặc đã hết hạn.";
+        public const string GoogleAuthFailed = "Xác thực Google thất bại.";
     }
 }

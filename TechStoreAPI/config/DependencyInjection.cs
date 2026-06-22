@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using TechStore.Domain.Models;
 using TechStore.Repository.IRepositories;
 using TechStore.Repository.Repositories;
@@ -27,10 +21,11 @@ namespace TechStoreAPI.config
               typeof(GenericRepository<>));
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ICategoryService, CategoryService>();
-            services.AddScoped<IOrderService, OrderService>();  
+            services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IDeviceService, DeviceService>();
-            services.AddSingleton<INotificationService, NotificationService>();
-            
+            services.AddScoped<IUserDeviceService, UserDeviceService>();
+            services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
+
             services.Configure<BrevoSettings>(configuration.GetSection("BrevoSettings"));
             services.AddScoped<IEmailService, BrevoEmailService>();
 
