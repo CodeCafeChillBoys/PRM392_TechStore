@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using TechStore.Domain.Constants;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
@@ -66,6 +64,8 @@ namespace TechStore.Service.Service
                 ExpiryDate = DateTime.UtcNow.AddDays(double.Parse(_configuration.GetSection("Jwt")["RefreshTokenExpirationDays"] ?? "7")),
                 IsRevoked = false
             });
+
+            await HandleDeviceRegistrationAndNotificationAsync(user, session);
 
             _unitOfWork.LoginSessions.Remove(session);
             await _unitOfWork.CompleteAsync();

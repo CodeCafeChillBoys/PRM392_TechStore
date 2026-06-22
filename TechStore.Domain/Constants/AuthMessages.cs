@@ -14,7 +14,8 @@ namespace TechStore.Domain.Constants
         
         public const string InvalidCredentials = "Email hoặc mật khẩu không chính xác.";
         public const string AuthCodeSent = "Mã xác thực đã được gửi về email của bạn.";
-        public const string LinkSent = "Liên kết xác thực đã được gửi về email của bạn.";
+        public const string SessionCreated = "Phiên đăng nhập đã được khởi tạo. Vui lòng chọn phương thức xác thực.";
+        public const string EmailLinkSentSuccess = "Liên kết xác thực đăng nhập đã được gửi về email của bạn.";
         
         public const string InvalidVerifyToken = "Mã xác thực link không hợp lệ.";
         public const string VerifyLinkExpired = "Liên kết xác thực đã hết hạn.";
@@ -29,5 +30,9 @@ namespace TechStore.Domain.Constants
         public const string SessionNotPending = "Phiên đăng nhập không còn ở trạng thái chờ xác thực.";
         public const string VerifyDeviceSuccess = "Xác thực thiết bị thành công.";
         public const string OtpSentSuccess = "Đã gửi mã OTP qua email.";
+        
+        public const string GoogleConfigMissing = "Cấu hình Google ClientId trên server chưa được thiết lập.";
+        public const string GoogleInvalidToken = "Token Google không hợp lệ hoặc đã hết hạn.";
+        public const string GoogleAuthFailed = "Xác thực Google thất bại.";
     }
 }

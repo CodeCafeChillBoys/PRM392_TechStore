@@ -7,14 +7,28 @@ namespace TechStore.Domain.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
+
         [Required]
         public Guid UserId { get; set; }
+
+        [Required]
+        [MaxLength(255)]
+        public string DeviceId { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? DeviceName { get; set; }
+
         [Required]
         public string FcmToken { get; set; } = string.Empty;
+
+        [MaxLength(50)]
         public string? DeviceType { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-        // Navigation properties
-        [ForeignKey("UserId")]
+
+        [ForeignKey(nameof(UserId))]
         public User User { get; set; } = null!;
     }
 }

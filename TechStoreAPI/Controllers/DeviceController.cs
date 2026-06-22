@@ -14,9 +14,9 @@ namespace TechStoreAPI.Controllers
     public class DeviceController : ControllerBase
     {
         private readonly IDeviceService _deviceService;
-        private readonly INotificationService _notificationService;
+        private readonly IFirebaseNotificationService _notificationService;
 
-        public DeviceController(IDeviceService deviceService, INotificationService notificationService)
+        public DeviceController(IDeviceService deviceService, IFirebaseNotificationService notificationService)
         {
             _deviceService = deviceService;
             _notificationService = notificationService;

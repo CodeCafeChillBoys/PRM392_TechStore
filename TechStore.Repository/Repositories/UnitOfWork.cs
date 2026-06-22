@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -43,7 +43,6 @@ namespace TechStore.Repository.Repositories
 
         public IGenericRepository<UserDevice> UserDevices =>
      _userDevices ??= new GenericRepository<UserDevice>(_context);
-
 
         public async Task<int> CompleteAsync()
         {
