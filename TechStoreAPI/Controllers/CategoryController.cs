@@ -41,7 +41,7 @@ namespace TechStoreAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Staff")]
+        //[Authorize(Roles = "Staff")]
         public async Task<ActionResult<CategoryResponseDTO>> CreateCategory(CategoryDTO categoryDto)
         {
             var newCategory = _mapper.Map<Category>(categoryDto);

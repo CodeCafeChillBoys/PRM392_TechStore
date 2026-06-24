@@ -41,7 +41,7 @@ namespace TechStoreAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Staff")]
+        //[Authorize(Roles = "Staff")]
         public async Task<ActionResult<ProductResponseDTO>> CreateProduct([FromBody] CreateProductDTO productDto)
         {
             var newProduct = _mapper.Map<Product>(productDto);

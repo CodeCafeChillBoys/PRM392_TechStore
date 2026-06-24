@@ -13,6 +13,8 @@ namespace TechStoreAPI.config
 
             services.AddScoped<IUserRepositories, UserRepositories>();
             services.AddScoped<IRefreshTokenRepositories, RefreshTokenRepositories>();
+            services.AddScoped<ICartRepository, CartRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IAuthService, AuthenService>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -22,6 +24,7 @@ namespace TechStoreAPI.config
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<ICartService, CartService>();
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IUserDeviceService, UserDeviceService>();
             services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
