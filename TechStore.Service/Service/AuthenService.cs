@@ -120,7 +120,8 @@ namespace TechStore.Service.Service
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PhoneNumber = request.PhoneNumber
             };
 
             await _unitOfWork.Users.AddAsync(newUser);

@@ -10,6 +10,8 @@ namespace TechStore.Domain.DTOs.Request
 
         public string FullName { get; set; } = string.Empty;
 
+        public string? PhoneNumber { get; set; }
+
         public Role Role { get; set; } = Role.Customer;
     }
 }
