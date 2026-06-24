@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using TechStore.Domain.Models;
 
-namespace TechStore.Service.IServices
+namespace TechStore.Service.IService
 {
     public interface IVnpayService
     {

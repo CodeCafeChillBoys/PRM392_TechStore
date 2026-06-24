@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TechStore.Domain.Settings;
-using TechStore.Service.IServices;
-using TechStore.Service.Services;
+using TechStore.Service.IService;
+using TechStore.Service.Service;
 
 namespace TechStoreAPI.config
 {
@@ -16,9 +16,8 @@ namespace TechStoreAPI.config
             services.Configure<VnpaySettings>(
                 configuration.GetSection(VnpaySettings.SectionName));
 
-            // Register application services
+            // Register VNPay service (IOrderService is registered in DependencyInjection.cs)
             services.AddScoped<IVnpayService, VnpayService>();
-            services.AddScoped<IOrderService, OrderService>();
 
             return services;
         }

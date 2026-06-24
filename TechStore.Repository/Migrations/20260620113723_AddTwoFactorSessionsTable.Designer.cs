@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TechStore.Repository.Data;
@@ -11,9 +12,11 @@ using TechStore.Repository.Data;
 namespace TechStore.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260620113723_AddTwoFactorSessionsTable")]
+    partial class AddTwoFactorSessionsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,64 +67,6 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("TechStore.Domain.Models.LoginSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AccessToken")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeviceId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DeviceName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DeviceType")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ExpiredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("ExpiresIn")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FcmToken")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsOtpSent")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("OtpCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("RefreshToken")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("VerifyToken")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("LoginSessions");
-                });
-
             modelBuilder.Entity("TechStore.Domain.Models.Message", b =>
                 {
                     b.Property<Guid>("Id")
@@ -161,10 +106,6 @@ namespace TechStore.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasColumnType("text");
@@ -178,9 +119,6 @@ namespace TechStore.Repository.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("VnpayTransactionId")
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -310,6 +248,42 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.TwoFactorSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsLinkVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOtpVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerifyToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TwoFactorSessions");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -346,45 +320,6 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TechStore.Domain.Models.UserDevice", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeviceId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("DeviceName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("DeviceType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("FcmToken")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserDevices");
-                });
-
             modelBuilder.Entity("TechStore.Domain.Models.Cart", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.Product", "Product")
@@ -400,17 +335,6 @@ namespace TechStore.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TechStore.Domain.Models.LoginSession", b =>
-                {
-                    b.HasOne("TechStore.Domain.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -489,7 +413,7 @@ namespace TechStore.Repository.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TechStore.Domain.Models.UserDevice", b =>
+            modelBuilder.Entity("TechStore.Domain.Models.TwoFactorSession", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.User", "User")
                         .WithMany()

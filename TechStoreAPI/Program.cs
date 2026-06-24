@@ -16,17 +16,12 @@ builder.Services.AddJwtConfiguration(builder.Configuration);
 // ── VNPay + Order services (từ nhánh checkout/billing) ───────────────────
 builder.Services.AddServices(builder.Configuration);
 
-// ── Dependency Injection (từ nhánh Auth/Cart) ────────────────────────────
-builder.Services.AddDependencyInjection();
+// ── Dependency Injection (từ nhánh develop — Auth/Cart/Device/Email) ─────
+builder.Services.AddDependencyInjection(builder.Configuration);
 
-// Generic Repository và Unit Of Work
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-// Services cho Product, Category, Cart
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<ICartService, CartService>();
+// ── Swagger (từ nhánh develop — có JWT Bearer) ───────────────────────────
+builder.Services.AddSwaggerConfiguration();
+builder.Services.AddEndpointsApiExplorer();
 
 
 // ── Controllers + JSON options ────────────────────────────────────────────
@@ -36,10 +31,6 @@ builder.Services.AddControllers().AddJsonOptions(options =>
         System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// ── AutoMapper ────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(config =>
 {
     config.AddMaps(typeof(Program).Assembly);

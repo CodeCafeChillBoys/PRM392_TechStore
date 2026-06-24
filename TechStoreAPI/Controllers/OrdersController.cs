@@ -3,25 +3,107 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TechStore.Domain.DTOs;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
 using TechStore.Service.IService;
 
 namespace TechStoreAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/orders")]
+    [Route("api/order")]
     [ApiController]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
         private readonly IMapper _mapper;
+        private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(IOrderService orderService, IMapper mapper)
+        public OrdersController(
+            IOrderService orderService,
+            IMapper mapper,
+            ILogger<OrdersController> logger)
         {
             _orderService = orderService;
             _mapper = mapper;
+            _logger = logger;
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /api/orders/checkout
+        // Checkout from user's cart (supports COD/BankTransfer/CreditCard/VNPay)
+        // ─────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Places an order from the user's cart.
+        /// - COD/BankTransfer/CreditCard: returns full order details (status=Pending).
+        /// - VNPay: returns order + paymentUrl (status=PendingPayment). Client must open paymentUrl.
+        /// </summary>
+        [HttpPost("checkout")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Checkout([FromBody] CheckoutRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                // Get client IP for VNPay payment URL (required by VNPay spec)
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+
+                var result = await _orderService.CheckoutAsync(request, ipAddress);
+
+                _logger.LogInformation(
+                    "Order {OrderId} created — Method: {Method}, RequiresPayment: {RequiresPayment}",
+                    result.Order.Id, request.PaymentMethod, result.RequiresOnlinePayment);
+
+                // VNPay flow → return paymentUrl for client to open
+                if (result.RequiresOnlinePayment)
+                {
+                    return CreatedAtAction(
+                        nameof(GetOrder),
+                        new { id = result.Order.Id },
+                        new
+                        {
+                            message            = "Order created. Please complete payment via VNPay.",
+                            requiresPayment    = true,
+                            paymentUrl         = result.PaymentUrl,
+                            orderId            = result.Order.Id,
+                            totalAmount        = result.Order.TotalAmount,
+                            orderStatus        = result.Order.Status,
+                            paymentStatus      = result.Order.PaymentStatus
+                        });
+                }
+
+                // COD / BankTransfer / CreditCard → order confirmed immediately
+                return CreatedAtAction(
+                    nameof(GetOrder),
+                    new { id = result.Order.Id },
+                    new
+                    {
+                        message         = "Order placed successfully.",
+                        requiresPayment = false,
+                        data            = result.Order
+                    });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Checkout failed for user {UserId}: {Message}", request.UserId, ex.Message);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during checkout for user {UserId}.", request.UserId);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An unexpected error occurred. Please try again." });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /api/orders
+        // Get all orders (admin)
+        // ─────────────────────────────────────────────────────────────────────
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderResponseDTO>>> GetOrders()
         {
@@ -30,6 +112,10 @@ namespace TechStoreAPI.Controllers
             return Ok(response);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /api/orders/{id}
+        // Get single order by ID
+        // ─────────────────────────────────────────────────────────────────────
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderResponseDTO>> GetOrder(Guid id)
         {
@@ -40,6 +126,10 @@ namespace TechStoreAPI.Controllers
             return Ok(response);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /api/orders/user/{userId}
+        // Get all orders for a user
+        // ─────────────────────────────────────────────────────────────────────
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<OrderResponseDTO>>> GetOrdersByUser(Guid userId)
         {
@@ -48,6 +138,10 @@ namespace TechStoreAPI.Controllers
             return Ok(response);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /api/orders
+        // Create order manually (admin / direct create without cart)
+        // ─────────────────────────────────────────────────────────────────────
         [HttpPost]
         public async Task<ActionResult<OrderResponseDTO>> CreateOrder(CreateOrderDTO createOrderDto)
         {
@@ -57,7 +151,7 @@ namespace TechStoreAPI.Controllers
             }
 
             var createdOrder = await _orderService.CreateOrderAsync(createOrderDto);
-            
+
             // Lấy lại order với details đầy đủ để map cho đẹp
             var orderWithDetails = await _orderService.GetOrderByIdAsync(createdOrder.Id);
             var response = _mapper.Map<OrderResponseDTO>(orderWithDetails);
@@ -65,8 +159,11 @@ namespace TechStoreAPI.Controllers
             return Ok(response);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // PUT /api/orders/{id}/status (Accepts raw string body like "Confirmed")
+        // ─────────────────────────────────────────────────────────────────────
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] string newStatus)
+        public async Task<IActionResult> UpdateOrderStatusPut(Guid id, [FromBody] string newStatus)
         {
             var existingOrder = await _orderService.GetOrderByIdAsync(id);
             if (existingOrder == null) return NotFound("Đơn hàng không tồn tại");
@@ -75,6 +172,26 @@ namespace TechStoreAPI.Controllers
             return NoContent();
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // PATCH /api/orders/{id}/status (Accepts JSON body {"status": "Confirmed"})
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateOrderStatusPatch(Guid id, [FromBody] UpdateOrderStatusRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var existingOrder = await _orderService.GetOrderByIdAsync(id);
+            if (existingOrder == null) return NotFound("Đơn hàng không tồn tại");
+
+            await _orderService.UpdateOrderStatusAsync(id, request.Status);
+            return NoContent();
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // DELETE /api/orders/{id}
+        // Delete order (admin)
+        // ─────────────────────────────────────────────────────────────────────
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {
@@ -84,5 +201,14 @@ namespace TechStoreAPI.Controllers
             await _orderService.DeleteOrderAsync(id);
             return NoContent();
         }
+    }
+
+    public class UpdateOrderStatusRequest
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.RegularExpression(
+            "^(Pending|PendingPayment|Confirmed|Shipped|Delivered|Cancelled)$",
+            ErrorMessage = "Status must be: Pending, PendingPayment, Confirmed, Shipped, Delivered, or Cancelled.")]
+        public string Status { get; set; } = string.Empty;
     }
 }

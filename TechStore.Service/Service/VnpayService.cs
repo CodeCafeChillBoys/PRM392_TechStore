@@ -8,9 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using TechStore.Domain.Models;
 using TechStore.Domain.Settings;
-using TechStore.Service.IServices;
+using TechStore.Service.IService;
 
-namespace TechStore.Service.Services
+namespace TechStore.Service.Service
 {
     /// <summary>
     /// VNPay Sandbox integration — v2.1.0

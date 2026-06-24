@@ -1,3 +1,5 @@
+using TechStore.Domain.DTOs.Response;
+
 namespace TechStore.Domain.DTOs
 {
     /// <summary>
@@ -8,7 +10,7 @@ namespace TechStore.Domain.DTOs
     public class CheckoutResult
     {
         /// <summary>The created order details.</summary>
-        public OrderResponse Order { get; set; } = null!;
+        public OrderResponseDTO Order { get; set; } = null!;
 
         /// <summary>
         /// VNPay payment URL — non-null only when PaymentMethod is "VNPay".

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +14,9 @@ namespace TechStore.Repository.IRepositories
         IProductRepository Products { get; }
         IGenericRepository<Category> Categories { get; }
         IOrderRepository Orders { get; }
+        IGenericRepository<LoginSession> LoginSessions { get; }
+        IGenericRepository<UserDevice> UserDevices { get; }
+
         ICartRepository Carts { get; }
         Task<int> CompleteAsync();
     }

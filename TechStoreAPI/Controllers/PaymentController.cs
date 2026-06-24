@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using TechStore.Service.IServices;
+using TechStore.Service.IService;
 
 namespace TechStoreAPI.Controllers
 {
