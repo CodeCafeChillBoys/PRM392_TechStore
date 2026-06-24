@@ -17,6 +17,7 @@ namespace TechStore.Repository.Repositories
         private IGenericRepository<Category> _categories;
         private IOrderRepository _orders;
         private IGenericRepository<LoginSession> _loginSessions;
+        private ICartRepository _carts;
         public IUserRepositories Users { get; }
         public IRefreshTokenRepositories RefreshTokens { get; }
 
@@ -43,6 +44,9 @@ namespace TechStore.Repository.Repositories
 
         public IGenericRepository<UserDevice> UserDevices =>
      _userDevices ??= new GenericRepository<UserDevice>(_context);
+        public ICartRepository Carts =>
+             _carts ??= new CartRepository(_context);
+
 
         public async Task<int> CompleteAsync()
         {
