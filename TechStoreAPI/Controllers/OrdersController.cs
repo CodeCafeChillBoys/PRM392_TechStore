@@ -10,8 +10,7 @@ using TechStore.Service.IService;
 
 namespace TechStoreAPI.Controllers
 {
-    [Route("api/orders")]
-    [Route("api/order")]
+    [Route("api/[controller]")]
     [ApiController]
     public class OrdersController : ControllerBase
     {
@@ -201,6 +200,29 @@ namespace TechStoreAPI.Controllers
             await _orderService.DeleteOrderAsync(id);
             return NoContent();
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // COMPATIBILITY ENDPOINTS (Hidden from Swagger UI, for Mobile FE)
+        // ─────────────────────────────────────────────────────────────────────
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [HttpPost("/api/order/checkout")]
+        public Task<IActionResult> CheckoutCompat([FromBody] CheckoutRequest request)
+            => Checkout(request);
+
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [HttpGet("/api/order/{id}")]
+        public Task<ActionResult<OrderResponseDTO>> GetOrderCompat(Guid id)
+            => GetOrder(id);
+
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [HttpGet("/api/order/user/{userId}")]
+        public Task<ActionResult<IEnumerable<OrderResponseDTO>>> GetOrdersByUserCompat(Guid userId)
+            => GetOrdersByUser(userId);
+
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [HttpPatch("/api/order/{id}/status")]
+        public Task<IActionResult> UpdateOrderStatusPatchCompat(Guid id, [FromBody] UpdateOrderStatusRequest request)
+            => UpdateOrderStatusPatch(id, request);
     }
 
     public class UpdateOrderStatusRequest
