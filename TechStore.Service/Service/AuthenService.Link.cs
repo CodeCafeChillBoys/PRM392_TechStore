@@ -171,7 +171,7 @@ namespace TechStore.Service.Service
                 };
             }
 
-            var apiDomain = _configuration.GetSection("Jwt")["Issuer"] ?? "http://localhost:5173";
+            var apiDomain = _configuration.GetSection("Jwt")["Issuer"] ?? "http://10.0.2.2:5173";
             var verifyEmailLink = $"{apiDomain}/api/auth/verify-email-link?token={token}";
 
             var emailBody = EmailTemplates.GetLoginVerificationLinkEmailBody(user.FullName, verifyEmailLink);

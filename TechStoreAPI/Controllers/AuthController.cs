@@ -29,7 +29,7 @@ namespace TechStoreAPI.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
-
+        
         /// <summary>
         /// Đăng nhập tài khoản bằng Email và Mật khẩu.
         /// </summary>
