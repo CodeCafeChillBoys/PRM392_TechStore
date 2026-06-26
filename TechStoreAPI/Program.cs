@@ -9,23 +9,33 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDatabase(builder.Configuration);
+
+// ── JWT Authentication (từ nhánh Auth) ───────────────────────────────────
 builder.Services.AddJwtConfiguration(builder.Configuration);
+
+// ── VNPay + Order services (từ nhánh checkout/billing) ───────────────────
+builder.Services.AddServices(builder.Configuration);
+
+// ── Dependency Injection (từ nhánh develop — Auth/Cart/Device/Email) ─────
 builder.Services.AddDependencyInjection(builder.Configuration);
+
+// ── Swagger (từ nhánh develop — có JWT Bearer) ───────────────────────────
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddEndpointsApiExplorer();
 
 
-
+// ── Controllers + JSON options ────────────────────────────────────────────
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.ReferenceHandler =
+        System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
 builder.Services.AddAutoMapper(config =>
 {
-    // Lệnh này sẽ tự động quét toàn bộ Project để tìm tất cả các file MappingProfile
     config.AddMaps(typeof(Program).Assembly);
-}); 
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

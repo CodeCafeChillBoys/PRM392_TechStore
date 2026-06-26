@@ -19,6 +19,17 @@ namespace TechStore.Domain.Models
 
         public string Status { get; set; } = "Pending";
 
+        /// <summary>
+        /// Payment status independent of order status.
+        /// Values: Pending | Paid | Failed | Cancelled
+        /// </summary>
+        public string PaymentStatus { get; set; } = "Pending";
+
+        /// <summary>
+        /// VNPay transaction number (vnp_TransactionNo) — null for COD/BankTransfer.
+        /// </summary>
+        public string? VnpayTransactionId { get; set; }
+
         public User User { get; set; }
 
         public ICollection<OrderDetail> OrderDetails { get; set; }
