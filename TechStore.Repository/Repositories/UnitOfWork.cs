@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,6 +22,7 @@ namespace TechStore.Repository.Repositories
         public IRefreshTokenRepositories RefreshTokens { get; }
 
         private IGenericRepository<UserDevice> _userDevices;
+        private IGenericRepository<Notification> _notifications;
 
         public UnitOfWork(ApplicationDbContext context, IUserRepositories users, IRefreshTokenRepositories refreshTokens)
         {
@@ -44,6 +45,8 @@ namespace TechStore.Repository.Repositories
 
         public IGenericRepository<UserDevice> UserDevices =>
      _userDevices ??= new GenericRepository<UserDevice>(_context);
+        public IGenericRepository<Notification> Notifications =>
+     _notifications ??= new GenericRepository<Notification>(_context);
         public ICartRepository Carts =>
              _carts ??= new CartRepository(_context);
 

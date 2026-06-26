@@ -21,11 +21,25 @@ namespace TechStore.Repository.Data
         public DbSet<LoginSession> LoginSessions { get; set; }
 
         public DbSet<UserDevice> UserDevices { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()
                 .Property(u => u.Role)
+                .HasConversion<string>();
+
+            // THÊM CẤU HÌNH CHO NOTIFICATION Ở ĐÂY:
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Type)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Icon)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Tone)
                 .HasConversion<string>();
 
             base.OnModelCreating(modelBuilder);
