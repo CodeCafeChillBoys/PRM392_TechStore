@@ -43,6 +43,5 @@ namespace TechStoreAPI.Controllers
             await _notificationService.SendNotificationAsync(token, "Test Title", "Test Body");
             return Ok("Đã gọi lệnh gửi, check log console backend!");
         }
-
     }
 }

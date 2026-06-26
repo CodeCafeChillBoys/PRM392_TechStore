@@ -64,18 +64,14 @@ namespace TechStoreAPI.Controllers
             // Update DB (fallback — IPN is primary)
             await _orderService.ConfirmVnpayPaymentAsync(orderId, isPaid, transactionId);
 
-            var message = isPaid
-                ? "Thanh toán thành công! Đơn hàng của bạn đã được xác nhận."
-                : $"Thanh toán thất bại (mã lỗi: {responseCode}). Đơn hàng đã bị huỷ.";
-
-            return Ok(new
+            double amount = 0;
+            if (long.TryParse(Request.Query["vnp_Amount"].ToString(), out var returnAmtRaw))
             {
-                success = isPaid,
-                orderId = orderIdStr,
-                transactionId,
-                amount = amountDisplay,
-                message
-            });
+                amount = (double)returnAmtRaw / 100;
+            }
+
+            var flutterDeepLink = $"techstore://payment-result?success={isPaid.ToString().ToLower()}&orderId={orderIdStr}&amount={amount}&paymentMethod=VNPay";
+            return Redirect(flutterDeepLink);
         }
 
         // ─────────────────────────────────────────────────────────────────────

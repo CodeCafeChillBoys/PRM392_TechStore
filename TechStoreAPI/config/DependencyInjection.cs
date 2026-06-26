@@ -28,6 +28,7 @@ namespace TechStoreAPI.config
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IUserDeviceService, UserDeviceService>();
             services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
+            services.AddScoped<INotificationService, NotificationService>();
 
             services.Configure<BrevoSettings>(configuration.GetSection("BrevoSettings"));
             services.AddScoped<IEmailService, BrevoEmailService>();

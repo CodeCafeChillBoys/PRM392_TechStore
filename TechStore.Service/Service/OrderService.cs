@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using TechStore.Domain.DTOs;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
+using TechStore.Domain.Enum;
 using TechStore.Domain.Models;
 using TechStore.Repository.Data;
 using TechStore.Repository.IRepositories;
@@ -20,17 +21,20 @@ namespace TechStore.Service.Service
         private readonly IUnitOfWork _unitOfWork;
         private readonly IVnpayService _vnpayService;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
 
         public OrderService(
             ApplicationDbContext context,
             IUnitOfWork unitOfWork,
             IVnpayService vnpayService,
-            IMapper mapper)
+            IMapper mapper,
+            INotificationService notificationService)
         {
             _context = context;
             _unitOfWork = unitOfWork;
             _vnpayService = vnpayService;
             _mapper = mapper;
+            _notificationService = notificationService;
         }
 
         // =====================================================================
@@ -205,6 +209,18 @@ namespace TechStore.Service.Service
             if (isVnpay)
                 paymentUrl = _vnpayService.CreatePaymentUrl(order, ipAddress);
 
+            if (!isVnpay)
+            {
+                await _notificationService.CreateAndSendNotificationAsync(
+                    request.UserId,
+                    $"🎉 Đặt hàng thành công đơn #{order.Id.ToString()[..8]}",
+                    "Đơn hàng của bạn đã được tiếp nhận và đang chờ duyệt.",
+                    NotificationType.Order,
+                    NotificationIcon.Gift,
+                    NotificationTone.Accent
+                );
+            }
+
             return new CheckoutResult
             {
                 Order      = orderResponse,
@@ -225,14 +241,35 @@ namespace TechStore.Service.Service
                 order.Status              = "Confirmed";
                 order.PaymentStatus       = "Paid";
                 order.VnpayTransactionId  = transactionId;
+
+                await _context.SaveChangesAsync();
+
+                await _notificationService.CreateAndSendNotificationAsync(
+                    order.UserId,
+                    $"💳 Thanh toán thành công đơn #{order.Id.ToString()[..8]}",
+                    "Giao dịch VNPay thành công. TechStore đang chuẩn bị hàng để giao cho bạn.",
+                    NotificationType.Order,
+                    NotificationIcon.Gift,
+                    NotificationTone.Accent
+                );
             }
             else
             {
                 order.Status        = "Cancelled";
                 order.PaymentStatus = "Failed";
+
+                await _context.SaveChangesAsync();
+
+                await _notificationService.CreateAndSendNotificationAsync(
+                    order.UserId,
+                    $"❌ Giao dịch VNPay thất bại",
+                    $"Thanh toán đơn hàng #{order.Id.ToString()[..8]} không thành công. Đơn hàng đã bị hủy.",
+                    NotificationType.Order,
+                    NotificationIcon.Bell,
+                    NotificationTone.Error
+                );
             }
 
-            await _context.SaveChangesAsync();
             return true;
         }
     }
