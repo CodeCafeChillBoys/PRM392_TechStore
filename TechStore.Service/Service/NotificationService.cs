@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
 using TechStore.Domain.Enum;
 using TechStore.Domain.Models;
@@ -70,17 +71,17 @@ namespace TechStore.Service.Service
             return true;
         }
 
-        public async Task CreateAndSendNotificationAsync(Guid userId, string title, string body, NotificationType type, NotificationIcon icon, NotificationTone tone)
+        public async Task CreateAndSendNotificationAsync(CreateNotificationRequest request)
         {
             // 1. Lưu thông báo vào DB
             var notification = new Notification
             {
-                UserId = userId,
-                Title = title,
-                Body = body,
-                Type = type,
-                Icon = icon,
-                Tone = tone,
+                UserId = request.UserId,
+                Title = request.Title,
+                Body = request.Body,
+                Type = request.Type,
+                Icon = request.Icon,
+                Tone = request.Tone,
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false
             };
@@ -89,28 +90,28 @@ namespace TechStore.Service.Service
             await _unitOfWork.CompleteAsync();
 
             // 2. Tìm các token thiết bị của User để đẩy Push Notification
-            var devices = await _unitOfWork.UserDevices.FindAsync(d => d.UserId == userId);
+            var devices = await _unitOfWork.UserDevices.FindAsync(d => d.UserId == request.UserId);
 
             foreach (var device in devices)
             {
                 if (!string.IsNullOrEmpty(device.FcmToken))
                 {
-                    await _firebaseNotificationService.SendNotificationAsync(device.FcmToken, title, body);
+                    await _firebaseNotificationService.SendNotificationAsync(device.FcmToken, request.Title, request.Body);
                 }
             }
         }
 
-        public async Task BroadcastNotificationAsync(string title, string body, NotificationType type, NotificationIcon icon, NotificationTone tone)
+        public async Task BroadcastNotificationAsync(NotificationRequest request)
         {
             // 1. Lưu thông báo với UserId = null (cho tất cả người dùng)
             var notification = new Notification
             {
                 UserId = null,
-                Title = title,
-                Body = body,
-                Type = type,
-                Icon = icon,
-                Tone = tone,
+                Title = request.Title,
+                Body = request.Body,
+                Type = request.Type,
+                Icon = request.Icon,
+                Tone = request.Tone,
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false
             };
@@ -125,7 +126,7 @@ namespace TechStore.Service.Service
             {
                 if (!string.IsNullOrEmpty(device.FcmToken))
                 {
-                    await _firebaseNotificationService.SendNotificationAsync(device.FcmToken, title, body);
+                    await _firebaseNotificationService.SendNotificationAsync(device.FcmToken, request.Title, request.Body);
                 }
             }
         }
