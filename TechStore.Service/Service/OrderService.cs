@@ -152,29 +152,29 @@ namespace TechStore.Service.Service
 
             // 4. Determine initial statuses
             bool isVnpay = request.PaymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase);
-            string orderStatus   = isVnpay ? "PendingPayment" : "Pending";
+            string orderStatus = isVnpay ? "PendingPayment" : "Pending";
             string paymentStatus = "Pending";
 
             // 5. Create Order entity
             var order = new Order
             {
-                Id              = Guid.NewGuid(),
-                UserId          = request.UserId,
-                OrderDate       = DateTime.UtcNow,
-                TotalAmount     = total,
+                Id = Guid.NewGuid(),
+                UserId = request.UserId,
+                OrderDate = DateTime.UtcNow,
+                TotalAmount = total,
                 ShippingAddress = request.ShippingAddress,
-                PaymentMethod   = request.PaymentMethod,
-                Status          = orderStatus,
-                PaymentStatus   = paymentStatus
+                PaymentMethod = request.PaymentMethod,
+                Status = orderStatus,
+                PaymentStatus = paymentStatus
             };
 
             // 6. Create OrderDetail entities
             var orderDetails = cartItems.Select(c => new OrderDetail
             {
-                Id        = Guid.NewGuid(),
-                OrderId   = order.Id,
+                Id = Guid.NewGuid(),
+                OrderId = order.Id,
                 ProductId = c.ProductId,
-                Quantity  = c.Quantity,
+                Quantity = c.Quantity,
                 UnitPrice = c.Product!.Price
             }).ToList();
 
@@ -212,18 +212,21 @@ namespace TechStore.Service.Service
             if (!isVnpay)
             {
                 await _notificationService.CreateAndSendNotificationAsync(
-                    request.UserId,
-                    $"🎉 Đặt hàng thành công đơn #{order.Id.ToString()[..8]}",
-                    "Đơn hàng của bạn đã được tiếp nhận và đang chờ duyệt.",
-                    NotificationType.Order,
-                    NotificationIcon.Gift,
-                    NotificationTone.Accent
+                   new CreateNotificationRequest
+                   {
+                       UserId = request.UserId,
+                       Title = $"🎉 Đặt hàng thành công đơn #{order.Id.ToString()[..8]}",
+                       Body = "Đơn hàng của bạn đã được tiếp nhận và đang chờ duyệt.",
+                       Type = NotificationType.Order,
+                       Icon = NotificationIcon.Gift,
+                       Tone = NotificationTone.Accent
+                   }
                 );
             }
 
             return new CheckoutResult
             {
-                Order      = orderResponse,
+                Order = orderResponse,
                 PaymentUrl = paymentUrl
             };
         }
@@ -238,35 +241,41 @@ namespace TechStore.Service.Service
 
             if (success)
             {
-                order.Status              = "Confirmed";
-                order.PaymentStatus       = "Paid";
-                order.VnpayTransactionId  = transactionId;
+                order.Status = "Confirmed";
+                order.PaymentStatus = "Paid";
+                order.VnpayTransactionId = transactionId;
 
                 await _context.SaveChangesAsync();
 
                 await _notificationService.CreateAndSendNotificationAsync(
-                    order.UserId,
-                    $"💳 Thanh toán thành công đơn #{order.Id.ToString()[..8]}",
-                    "Giao dịch VNPay thành công. TechStore đang chuẩn bị hàng để giao cho bạn.",
-                    NotificationType.Order,
-                    NotificationIcon.Gift,
-                    NotificationTone.Accent
+                   new CreateNotificationRequest
+                   {
+                       UserId = order.UserId,
+                       Title = $"💳 Thanh toán thành công đơn #{order.Id.ToString()[..8]}",
+                       Body = "Giao dịch VNPay thành công. TechStore đang chuẩn bị hàng để giao cho bạn.",
+                       Type = NotificationType.Order,
+                       Icon = NotificationIcon.Gift,
+                       Tone = NotificationTone.Accent
+                   }
                 );
             }
             else
             {
-                order.Status        = "Cancelled";
+                order.Status = "Cancelled";
                 order.PaymentStatus = "Failed";
 
                 await _context.SaveChangesAsync();
 
                 await _notificationService.CreateAndSendNotificationAsync(
-                    order.UserId,
-                    $"❌ Giao dịch VNPay thất bại",
-                    $"Thanh toán đơn hàng #{order.Id.ToString()[..8]} không thành công. Đơn hàng đã bị hủy.",
-                    NotificationType.Order,
-                    NotificationIcon.Bell,
-                    NotificationTone.Error
+                   new CreateNotificationRequest
+                   {
+                       UserId = order.UserId,
+                       Title = $"❌ Giao dịch VNPay thất bại",
+                       Body = $"Thanh toán đơn hàng #{order.Id.ToString()[..8]} không thành công. Đơn hàng đã bị hủy.",
+                       Type = NotificationType.Order,
+                       Icon = NotificationIcon.Bell,
+                       Tone = NotificationTone.Error
+                   }
                 );
             }
 

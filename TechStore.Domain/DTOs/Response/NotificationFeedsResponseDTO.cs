@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace TechStore.Domain.DTOs.Response
 {
     public class NotificationFeedsResponseDTO

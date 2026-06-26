@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.Enum;
 using TechStore.Domain.Models;
 using TechStore.Repository.IRepositories;
@@ -17,7 +18,7 @@ namespace TechStore.Service.Service
 
         public ProductService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
-            _unitOfWork = unitOfWork;   
+            _unitOfWork = unitOfWork;
             _notificationService = notificationService;
         }
 
@@ -28,11 +29,14 @@ namespace TechStore.Service.Service
 
             // Gửi thông báo sản phẩm mới đến tất cả các thiết bị trong hệ thống
             await _notificationService.BroadcastNotificationAsync(
-                $"✨ Siêu phẩm mới: {product.Name}",
-                $"Sản phẩm {product.Name} thuộc thương hiệu {product.Brand} đã chính thức có mặt tại TechStore. Khám phá ngay!",
-                NotificationType.Promo,
-                NotificationIcon.ShoppingBag,
-                NotificationTone.Accent
+              new NotificationRequest
+              {
+                  Title = $"✨ Siêu phẩm mới: {product.Name}",
+                  Body = $"Sản phẩm {product.Name} thuộc thương hiệu {product.Brand} đã chính thức có mặt tại TechStore. Khám phá ngay!",
+                  Type = NotificationType.Promo,
+                  Icon = NotificationIcon.ShoppingBag,
+                  Tone = NotificationTone.Accent
+              }
             );
 
             return product;
