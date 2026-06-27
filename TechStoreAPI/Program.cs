@@ -4,6 +4,7 @@ using TechStore.Repository.Repositories;
 using TechStore.Service.IService;
 using TechStore.Service.Service;
 using TechStoreAPI.config;
+using TechStoreAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapHub<TechStoreAPI.Hubs.TrackingHub>("/trackingHub");
 app.MapControllers();
 
 app.Run();

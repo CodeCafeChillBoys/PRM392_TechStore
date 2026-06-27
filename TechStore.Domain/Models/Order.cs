@@ -33,5 +33,7 @@ namespace TechStore.Domain.Models
         public User User { get; set; }
 
         public ICollection<OrderDetail> OrderDetails { get; set; }
+
+        public Guid? StaffId { get; set; }
     }
 }

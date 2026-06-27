@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using TechStore.Domain.Constants;
 using TechStore.Domain.DTOs;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
@@ -280,6 +281,13 @@ namespace TechStore.Service.Service
             }
 
             return true;
+        }
+
+        public async Task<IEnumerable<Guid>> GetActiveOrderIdsByShipperAsync(Guid shipperId)
+        {
+            // Tìm các đơn hàng được gán cho nhân viên (StaffId) này và đang đi giao (Delivering)
+            var orders = await _unitOfWork.Orders.FindAsync(o => o.StaffId == shipperId && o.Status == ShippingConstants.StatusDelivering);
+            return orders.Select(o => o.Id);
         }
     }
 }

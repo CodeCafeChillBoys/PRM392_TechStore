@@ -33,5 +33,8 @@ namespace TechStore.Service.IService
         /// Idempotent — safe to call multiple times.
         /// </summary>
         Task<bool> ConfirmVnpayPaymentAsync(Guid orderId, bool success, string transactionId);
+
+
+        Task<IEnumerable<Guid>> GetActiveOrderIdsByShipperAsync(Guid shipperId);
     }
 }
