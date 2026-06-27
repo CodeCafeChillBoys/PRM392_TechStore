@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using TechStore.Domain.DTOs;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.Models;
@@ -36,5 +37,7 @@ namespace TechStore.Service.IService
 
 
         Task<IEnumerable<Guid>> GetActiveOrderIdsByShipperAsync(Guid shipperId);
+        Task<bool> ConfirmDeliveryAsync(Guid orderId, IFormFile imageFile);
+        Task AssignShipperAsync(Guid orderId, Guid staffId);
     }
 }

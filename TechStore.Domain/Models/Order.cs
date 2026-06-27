@@ -35,5 +35,6 @@ namespace TechStore.Domain.Models
         public ICollection<OrderDetail> OrderDetails { get; set; }
 
         public Guid? StaffId { get; set; }
+        public string? DeliveryProofImageUrl { get; set; }
     }
 }

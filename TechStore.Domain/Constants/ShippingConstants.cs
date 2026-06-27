@@ -3,10 +3,11 @@ namespace TechStore.Domain.Constants
     public static class ShippingConstants
     {
         // ── Order Statuses ──
-        public const string StatusDelivering = "Delivering";
+        public const string StatusDelivering = "Shipped";
         public const string StatusPending = "Pending";
         public const string StatusCompleted = "Completed";
         public const string StatusCancelled = "Cancelled";
+        public const string StatusDelivered = "Delivered";
 
         // ── Configuration Default Values ──
         public const double DefaultStoreLatitude = 10.841122;
@@ -25,5 +26,7 @@ namespace TechStore.Domain.Constants
         public const string CalculateShippingFailed = "Lỗi khi tính toán phí vận chuyển: {0}";
         public const string RealtimeTrackingFailed = "Lỗi hệ thống khi tính phí vận chuyển: {0}";
         public const string TrackingDataInvalid = "Dữ liệu định vị không hợp lệ.";
+        public const string ImageFileRequired = "Vui lòng chọn ảnh chụp xác nhận.";
+        public const string UploadProofFailed = "Lỗi khi upload ảnh và hoàn tất đơn hàng: {0}";
     }
 }
