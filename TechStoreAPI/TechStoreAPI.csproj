@@ -30,7 +30,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\TechStore.Service\TechStore.Service.csproj" />
-
+		<ProjectReference Include="..\TechStore.Domain\TechStore.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

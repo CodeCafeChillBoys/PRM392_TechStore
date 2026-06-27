@@ -4,8 +4,20 @@ using TechStore.Repository.Repositories;
 using TechStore.Service.IService;
 using TechStore.Service.Service;
 using TechStoreAPI.config;
+using TechStoreAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .SetIsOriginAllowed((host) => true)
+              .AllowCredentials();
+    });
+});
 
 // Add services to the container.
 builder.Services.AddDatabase(builder.Configuration);
@@ -45,10 +57,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles();
 app.UseHttpsRedirection();
+app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapHub<TechStoreAPI.Hubs.TrackingHub>("/trackingHub");
 app.MapControllers();
 
 app.Run();

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SignalR Realtime Tracking Client Test</title>
+    <!-- Import thư viện SignalR từ CDN chính thức của Microsoft -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background-color: #f7f9fa;
+        }
+        .container {
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 20px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #log {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            height: 250px;
+            overflow-y: auto;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>SignalR Realtime Tracking Client</h2>
+    
+    <label for="hubUrl"><b>Hub URL:</b></label>
+    <input type="text" id="hubUrl" value="http://localhost:5173/trackingHub">
+
+    <label for="orderId"><b>Order ID:</b></label>
+    <input type="text" id="orderId" value="e28a50de-1090-4824-8b65-0a56111f107f">
+
+    <button id="btnConnect">Connect & Join Group</button>
+
+    <h3>Log:</h3>
+    <pre id="log">Chờ kết nối...</pre>
+</div>
+
+<script>
+    const btnConnect = document.getElementById('btnConnect');
+    const log = document.getElementById('log');
+
+    function appendLog(msg) {
+        log.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+        log.scrollTop = log.scrollHeight; // Tự động cuộn xuống dưới
+    }
+
+    btnConnect.onclick = async () => {
+        log.innerHTML = ''; // Clear log cũ
+        const hubUrl = document.getElementById('hubUrl').value.trim();
+        const orderId = document.getElementById('orderId').value.trim();
+
+        appendLog(`Bắt đầu kết nối tới: ${hubUrl}`);
+
+        // 1. Tạo kết nối SignalR Hub
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(hubUrl)
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        // 2. Đăng ký lắng nghe sự kiện phát toạ độ từ Server
+        connection.on("ReceiveLocation", (data) => {
+            appendLog(`📍 Nhận toạ độ mới: Lat: ${data.lat}, Lng: $${data.lng} (Lúc: ${new Date(data.updatedAt).toLocaleTimeString()})`);
+        });
+
+        // 3. Tiến hành kết nối và gọi hàm Join Group
+        try {
+            await connection.start();
+            appendLog("✅ Kết nối WebSocket thành công!");
+
+            await connection.invoke("JoinOrderGroup", orderId);
+            appendLog(`👥 Đã tham gia phòng theo dõi đơn hàng: ${orderId}`);
+            appendLog("👉 Bây giờ hãy sang Postman gọi API POST cập nhật vị trí shipper!");
+        } catch (err) {
+            appendLog(`❌ Lỗi: ${err.message}`);
+        }
+    };
+</script>
+
+</body>
+</html>

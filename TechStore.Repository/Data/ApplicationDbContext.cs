@@ -23,6 +23,8 @@ namespace TechStore.Repository.Data
         public DbSet<UserDevice> UserDevices { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()

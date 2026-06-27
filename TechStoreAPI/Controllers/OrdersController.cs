@@ -223,6 +223,42 @@ namespace TechStoreAPI.Controllers
         [HttpPatch("/api/order/{id}/status")]
         public Task<IActionResult> UpdateOrderStatusPatchCompat(Guid id, [FromBody] UpdateOrderStatusRequest request)
             => UpdateOrderStatusPatch(id, request);
+
+        // POST /api/orders/{id}/confirm-delivery
+        [HttpPost("{id}/confirm-delivery")]
+        public async Task<IActionResult> ConfirmDelivery(Guid id, [FromForm] TechStore.Domain.DTOs.Request.UploadDeliveryProofRequest request)
+        {
+            if (request == null || request.Image == null)
+            {
+                return BadRequest(TechStore.Domain.Constants.ShippingConstants.ImageFileRequired);
+            }
+
+            try
+            {
+                var result = await _orderService.ConfirmDeliveryAsync(id, request.Image);
+                if (!result)
+                {
+                    return NotFound(TechStore.Domain.Constants.ShippingConstants.OrderNotFound);
+                }
+
+                return Ok(new { message = "Đã xác nhận giao hàng thành công." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, string.Format(TechStore.Domain.Constants.ShippingConstants.UploadProofFailed, ex.Message));
+            }
+        }
+
+        // PUT /api/orders/{id}/assign-shipper?staffId=xxx
+        [HttpPut("{id}/assign-shipper")]
+        public async Task<IActionResult> AssignShipper(Guid id, [FromQuery] Guid staffId)
+        {
+            var order = await _orderService.GetOrderByIdAsync(id);
+            if (order == null) return NotFound(TechStore.Domain.Constants.ShippingConstants.OrderNotFound);
+
+            await _orderService.AssignShipperAsync(id, staffId);
+            return NoContent();
+        }
     }
 
     public class UpdateOrderStatusRequest
