@@ -39,18 +39,30 @@ namespace TechStoreAPI.Controllers
             // A. Lưu toạ độ mới nhất của Shipper vào RAM
             _trackingService.UpdateLocation(request.ShipperId, request.Lat, request.Lng);
 
-            // B. Tìm các ID đơn hàng đang hoạt động của Shipper thông qua OrderService
-            var activeOrderIds = await _orderService.GetActiveOrderIdsByShipperAsync(request.ShipperId);
-
-            // C. Phát realtime qua SignalR Hub tới từng OrderGroup
-            foreach (var orderId in activeOrderIds)
+            // B. Kiểm tra xem Shipper có đang tập trung giao một đơn cụ thể nào không ("Xem và Chạy")
+            if (request.OrderId.HasValue && request.OrderId.Value != Guid.Empty)
             {
-                await _hubContext.Clients.Group(orderId.ToString()).SendAsync("ReceiveLocation", new
+                // CHỈ PHÁT REALTIME tới khách hàng của đơn hàng cụ thể này
+                await _hubContext.Clients.Group(request.OrderId.Value.ToString()).SendAsync("ReceiveLocation", new
                 {
                     lat = request.Lat,
                     lng = request.Lng,
                     updatedAt = DateTime.UtcNow
                 });
+            }
+            else
+            {
+                // Luồng cũ (dự phòng): Phát realtime tới tất cả đơn hàng đang hoạt động của Shipper
+                var activeOrderIds = await _orderService.GetActiveOrderIdsByShipperAsync(request.ShipperId);
+                foreach (var orderId in activeOrderIds)
+                {
+                    await _hubContext.Clients.Group(orderId.ToString()).SendAsync("ReceiveLocation", new
+                    {
+                        lat = request.Lat,
+                        lng = request.Lng,
+                        updatedAt = DateTime.UtcNow
+                    });
+                }
             }
 
             return Ok(new { message = ShippingConstants.UpdateLocationSuccess });

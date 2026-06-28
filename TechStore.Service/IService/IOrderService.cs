@@ -35,9 +35,11 @@ namespace TechStore.Service.IService
         /// </summary>
         Task<bool> ConfirmVnpayPaymentAsync(Guid orderId, bool success, string transactionId);
 
-
+        // lấy lên đơn hàng đang giao vs shipperID 
         Task<IEnumerable<Guid>> GetActiveOrderIdsByShipperAsync(Guid shipperId);
+        // Update order đã giao và hình ảnh
         Task<bool> ConfirmDeliveryAsync(Guid orderId, IFormFile imageFile);
+        // gán đơn hàng cho shipperId
         Task AssignShipperAsync(Guid orderId, Guid staffId);
     }
 }

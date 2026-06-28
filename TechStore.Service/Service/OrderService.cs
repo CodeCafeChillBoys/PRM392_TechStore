@@ -1,12 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using TechStore.Domain.Constants;
 using TechStore.Domain.DTOs;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
@@ -18,7 +11,7 @@ using TechStore.Service.IService;
 
 namespace TechStore.Service.Service
 {
-    public class OrderService : IService.IOrderService
+    public partial class OrderService : IService.IOrderService
     {
         private readonly ApplicationDbContext _context;
         private readonly IUnitOfWork _unitOfWork;
@@ -66,6 +59,8 @@ namespace TechStore.Service.Service
                 UserId = orderDto.UserId,
                 ShippingAddress = orderDto.ShippingAddress,
                 PaymentMethod = orderDto.PaymentMethod,
+                Latitude = orderDto.Latitude,
+                Longitude = orderDto.Longitude,
                 OrderDate = DateTime.UtcNow,
                 Status = "Pending",
                 OrderDetails = new List<OrderDetail>()
@@ -285,65 +280,6 @@ namespace TechStore.Service.Service
             return true;
         }
 
-        public async Task<IEnumerable<Guid>> GetActiveOrderIdsByShipperAsync(Guid shipperId)
-        {
-            // Tìm các đơn hàng được gán cho nhân viên (StaffId) này và đang đi giao (Delivering)
-            var orders = await _unitOfWork.Orders.FindAsync(o => o.StaffId == shipperId && o.Status == ShippingConstants.StatusDelivering);
-            return orders.Select(o => o.Id);
-        }
 
-        public async Task<bool> ConfirmDeliveryAsync(Guid orderId, IFormFile imageFile)
-        {
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-            if (order == null) return false;
-
-            // 1. Lưu ảnh cục bộ vào thư mục wwwroot/uploads/delivery-proofs/
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "delivery-proofs");
-            if (!Directory.Exists(uploadsFolder))
-            {
-                Directory.CreateDirectory(uploadsFolder);
-            }
-
-            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await imageFile.CopyToAsync(fileStream);
-            }
-
-            // 2. Cập nhật thông tin đơn hàng
-            order.Status = ShippingConstants.StatusDelivered;
-            order.DeliveryProofImageUrl = $"/uploads/delivery-proofs/{uniqueFileName}";
-
-            _unitOfWork.Orders.Update(order);
-            await _unitOfWork.CompleteAsync();
-
-            // 3. Gửi thông báo đến Khách hàng qua NotificationService
-            await _notificationService.CreateAndSendNotificationAsync(new CreateNotificationRequest
-            {
-                UserId = order.UserId,
-                Title = "📦 Giao hàng thành công",
-                Body = $"Đơn hàng #{order.Id.ToString()[..8]} đã được giao thành công.",
-                Type = NotificationType.Order,
-                Icon = NotificationIcon.Truck,
-                Tone = NotificationTone.Success
-            });
-
-            return true;
-        }
-
-        public async Task AssignShipperAsync(Guid orderId, Guid staffId)
-        {
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-            if (order != null)
-            {
-                order.StaffId = staffId;
-                order.Status = ShippingConstants.StatusDelivering; // Tự động đổi sang Shipped
-                
-                _unitOfWork.Orders.Update(order);
-                await _unitOfWork.CompleteAsync();
-            }
-        }
     }
 }

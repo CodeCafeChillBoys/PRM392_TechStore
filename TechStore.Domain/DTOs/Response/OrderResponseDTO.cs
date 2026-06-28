@@ -16,6 +16,8 @@ namespace TechStore.Domain.DTOs.Response
         public string Status { get; set; } = string.Empty;
         public string PaymentStatus { get; set; } = string.Empty;
         public string? VnpayTransactionId { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public List<OrderDetailResponseDTO> OrderDetails { get; set; } = new();
     }
 }
