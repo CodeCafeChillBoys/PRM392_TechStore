@@ -7,6 +7,7 @@ namespace TechStore.Domain.DTOs
         public Guid ShipperId { get; set; }
         public double Lat { get; set; }
         public double Lng { get; set; }
+        public Guid? OrderId { get; set; }
     }
 
     public class TrackingLocation

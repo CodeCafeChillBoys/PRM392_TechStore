@@ -29,7 +29,7 @@ namespace TechStoreAPI.config
             services.AddScoped<IUserDeviceService, UserDeviceService>();
             services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
             services.AddScoped<INotificationService, NotificationService>();
-        
+
             services.Configure<BrevoSettings>(configuration.GetSection("BrevoSettings"));
             services.AddScoped<IEmailService, BrevoEmailService>();
             services.AddHttpClient();
@@ -39,7 +39,12 @@ namespace TechStoreAPI.config
             services.AddSignalR();
             services.AddSingleton<ITrackingService, TrackingService>();
 
-
+            services.AddSingleton<ITrackingService, TrackingService>();
+            services.AddSignalR(options =>
+            {
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            });
             return services;
         }
     }
