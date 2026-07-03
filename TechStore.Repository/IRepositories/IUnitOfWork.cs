@@ -17,6 +17,7 @@ namespace TechStore.Repository.IRepositories
         IGenericRepository<LoginSession> LoginSessions { get; }
         IGenericRepository<UserDevice> UserDevices { get; }
         IGenericRepository<Notification> Notifications { get; }
+        IGenericRepository<KnowledgeItem> KnowledgeItems { get; }
 
         ICartRepository Carts { get; }
         Task<int> CompleteAsync();

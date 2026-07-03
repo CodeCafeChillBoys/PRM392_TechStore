@@ -36,9 +36,6 @@ namespace TechStoreAPI.config
             services.AddScoped<IGoongService, GoongService>();
             services.AddScoped<IShippingService, ShippingService>();
 
-            services.AddSignalR();
-            services.AddSingleton<ITrackingService, TrackingService>();
-
             services.AddSingleton<ITrackingService, TrackingService>();
             services.AddSignalR(options =>
             {

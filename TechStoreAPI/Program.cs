@@ -31,6 +31,11 @@ builder.Services.AddServices(builder.Configuration);
 // ── Dependency Injection (từ nhánh develop — Auth/Cart/Device/Email) ─────
 builder.Services.AddDependencyInjection(builder.Configuration);
 
+// ── Gemini Services ──────────────────────────────────────────────────────
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
+
 // ── Swagger (từ nhánh develop — có JWT Bearer) ───────────────────────────
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddEndpointsApiExplorer();

@@ -36,12 +36,24 @@ namespace TechStoreAPI.Controllers
                 return BadRequest(ShippingConstants.TrackingDataInvalid);
             }
 
+            // Chặn toạ độ rác (GPS mặc định của máy ảo: (0,0) hoặc Mountain View)
+            // để không hiển thị xe sai vị trí cho khách.
+            if (!IsWithinVietnam(request.Lat, request.Lng))
+            {
+                return BadRequest(ShippingConstants.LocationOutsideServiceArea);
+            }
+
             // A. Lưu toạ độ mới nhất của Shipper vào RAM
             _trackingService.UpdateLocation(request.ShipperId, request.Lat, request.Lng);
 
             // B. Kiểm tra xem Shipper có đang tập trung giao một đơn cụ thể nào không ("Xem và Chạy")
             if (request.OrderId.HasValue && request.OrderId.Value != Guid.Empty)
             {
+                // Lưu thêm theo ĐƠN để GET/khách đọc đúng shipper đang chạy đơn này
+                // (không phụ thuộc StaffId được gán ban đầu).
+                _trackingService.UpdateLocationForOrder(
+                    request.OrderId.Value, request.ShipperId, request.Lat, request.Lng);
+
                 // CHỈ PHÁT REALTIME tới khách hàng của đơn hàng cụ thể này
                 await _hubContext.Clients.Group(request.OrderId.Value.ToString()).SendAsync("ReceiveLocation", new
                 {
@@ -84,9 +96,13 @@ namespace TechStoreAPI.Controllers
                 return BadRequest(ShippingConstants.OrderNotDelivering);
             }
 
-            // B. Lấy toạ độ shipper đó từ RAM
-            var location = _trackingService.GetLatestLocation(order.StaffId.Value);
-            if (location == null)
+            // B. Chỉ đọc toạ độ lưu THEO ĐƠN (shipper đang thực sự "Xem & Chạy" đơn này).
+            //    KHÔNG fallback về vị trí theo StaffId nữa — fallback khiến các đơn khác
+            //    của cùng shipper trả về chung 1 toạ độ (vị trí shipper), gây hiểu nhầm
+            //    khách đang xem đơn nào cũng thấy xe. Đơn chưa chạy -> coi như chưa có vị trí.
+            var location = _trackingService.GetLatestLocationByOrder(orderId);
+            // Toạ độ cũ ngoài VN (GPS mặc định máy ảo còn sót trong RAM) coi như chưa có.
+            if (location == null || !IsWithinVietnam(location.Lat, location.Lng))
             {
                 return NotFound(ShippingConstants.ShipperLocationNotFound);
             }
@@ -97,6 +113,15 @@ namespace TechStoreAPI.Controllers
                 lng = location.Lng,
                 updatedAt = location.UpdatedAt
             });
+        }
+
+        // Toạ độ có nằm trong phạm vi Việt Nam không (chặn GPS mặc định của máy ảo).
+        private static bool IsWithinVietnam(double lat, double lng)
+        {
+            return lat >= ShippingConstants.VietnamMinLatitude
+                && lat <= ShippingConstants.VietnamMaxLatitude
+                && lng >= ShippingConstants.VietnamMinLongitude
+                && lng <= ShippingConstants.VietnamMaxLongitude;
         }
     }
 }

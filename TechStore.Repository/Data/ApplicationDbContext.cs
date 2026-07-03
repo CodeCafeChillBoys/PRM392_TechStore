@@ -22,6 +22,7 @@ namespace TechStore.Repository.Data
 
         public DbSet<UserDevice> UserDevices { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<KnowledgeItem> KnowledgeItems { get; set; }
 
 
 
