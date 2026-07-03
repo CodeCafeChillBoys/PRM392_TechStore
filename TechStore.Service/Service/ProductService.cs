@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.Enum;
 using TechStore.Domain.Models;
@@ -22,8 +23,13 @@ namespace TechStore.Service.Service
             _notificationService = notificationService;
         }
 
-        public async Task<Product> CreateProductAsync(Product product)
+        public async Task<Product> CreateProductAsync(Product product, IFormFile? image)
         {
+            if (image != null)
+            {
+                product.ImageUrl = await SaveProductImageAsync(image);
+            }
+
             await _unitOfWork.Products.AddAsync(product);
             await _unitOfWork.CompleteAsync();
 
@@ -40,6 +46,41 @@ namespace TechStore.Service.Service
             );
 
             return product;
+        }
+
+        public async Task<Product?> UpdateProductAsync(Product product, IFormFile? image)
+        {
+            if (image != null)
+            {
+                product.ImageUrl = await SaveProductImageAsync(image);
+            }
+
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.CompleteAsync();
+            return product;
+        }
+
+        /// <summary>
+        /// Lưu ảnh sản phẩm vào wwwroot/uploads/products/ — cùng cách
+        /// OrderService.ConfirmDeliveryAsync lưu ảnh xác nhận giao hàng.
+        /// </summary>
+        private static async Task<string> SaveProductImageAsync(IFormFile image)
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "products");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(fileStream);
+            }
+
+            return $"/uploads/products/{uniqueFileName}";
         }
 
         public async Task<IEnumerable<Product>> GetAllProductsAsync()
