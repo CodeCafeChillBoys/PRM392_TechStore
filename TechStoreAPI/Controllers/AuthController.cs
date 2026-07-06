@@ -166,5 +166,20 @@ namespace TechStoreAPI.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        /// <summary>
+        /// [DEV/ADMIN] Cấp/đổi role cho người dùng theo email (Customer | Staff).
+        /// Dùng để cấp quyền Staff. Nên bảo vệ bằng auth hoặc gỡ bỏ ở môi trường thật.
+        /// </summary>
+        /// <param name="email">Email tài khoản cần đổi role</param>
+        /// <param name="role">Role mới: Customer hoặc Staff (mặc định Staff)</param>
+        [HttpPut("set-role")]
+        public async Task<IActionResult> SetRole([FromQuery] string email, [FromQuery] string role = "Staff")
+        {
+            var result = await _authService.SetUserRoleAsync(email, role);
+            if (result == null || !result.success)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace TechStore.Service.Service
 {
     public class TrackingService : ITrackingService
     {
+        // Vị trí mới nhất theo Shipper (luồng cũ) và theo Đơn hàng (luồng chính khách theo dõi).
         private readonly ConcurrentDictionary<Guid, TrackingLocation> _locations = new();
         private readonly ConcurrentDictionary<Guid, TrackingLocation> _orderLocations = new();
 

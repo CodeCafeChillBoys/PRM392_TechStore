@@ -14,6 +14,7 @@ namespace TechStoreAPI.Mappings
 
             // 1. Mapping từ DTO -> Entity (Dùng cho thao tác Create/Update)
             CreateMap<CreateProductDTO, Product>();
+            CreateMap<UpdateProductDTO, Product>();
             CreateMap<CategoryDTO, Category>();
 
             // 2. Mapping từ Entity -> DTO (Dùng khi trả dữ liệu từ DB ra cho API)

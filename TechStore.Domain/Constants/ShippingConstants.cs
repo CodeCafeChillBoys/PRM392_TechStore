@@ -26,13 +26,15 @@ namespace TechStore.Domain.Constants
         public const string CalculateShippingFailed = "Lỗi khi tính toán phí vận chuyển: {0}";
         public const string RealtimeTrackingFailed = "Lỗi hệ thống khi tính phí vận chuyển: {0}";
         public const string TrackingDataInvalid = "Dữ liệu định vị không hợp lệ.";
-        public const string ImageFileRequired = "Vui lòng chọn ảnh chụp xác nhận.";
-        public const string UploadProofFailed = "Lỗi khi upload ảnh và hoàn tất đơn hàng: {0}";
+        public const string LocationOutsideServiceArea = "Toạ độ GPS nằm ngoài khu vực phục vụ (Việt Nam) — kiểm tra lại vị trí thiết bị.";
 
+        // ── Phạm vi toạ độ hợp lệ (Việt Nam) — chặn GPS mặc định của máy ảo
+        //    (vd (0,0) hoặc Mountain View 37.42,-122.08) lọt vào hệ thống. ──
         public const double VietnamMinLatitude = 8.0;
         public const double VietnamMaxLatitude = 24.0;
         public const double VietnamMinLongitude = 102.0;
         public const double VietnamMaxLongitude = 110.0;
-
+        public const string ImageFileRequired = "Vui lòng chọn ảnh chụp xác nhận.";
+        public const string UploadProofFailed = "Lỗi khi upload ảnh và hoàn tất đơn hàng: {0}";
     }
 }

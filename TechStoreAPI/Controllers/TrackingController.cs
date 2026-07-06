@@ -36,14 +36,25 @@ namespace TechStoreAPI.Controllers
                 return BadRequest(ShippingConstants.TrackingDataInvalid);
             }
 
+            // Chặn toạ độ rác (GPS mặc định của máy ảo: (0,0) hoặc Mountain View)
+            // để không hiển thị xe sai vị trí cho khách.
+            if (!IsWithinVietnam(request.Lat, request.Lng))
+            {
+                return BadRequest(ShippingConstants.LocationOutsideServiceArea);
+            }
+
             // A. Lưu toạ độ mới nhất của Shipper vào RAM
             _trackingService.UpdateLocation(request.ShipperId, request.Lat, request.Lng);
 
             // B. Nếu client đã gửi đúng OrderId thì phát trực tiếp vào phòng của đơn đó
             if (request.OrderId.HasValue && request.OrderId.Value != Guid.Empty)
             {
-                _trackingService.UpdateLocationForOrder(request.OrderId.Value, request.ShipperId, request.Lat, request.Lng);
+                // Lưu thêm theo ĐƠN để GET/khách đọc đúng shipper đang chạy đơn này
+                // (không phụ thuộc StaffId được gán ban đầu).
+                _trackingService.UpdateLocationForOrder(
+                    request.OrderId.Value, request.ShipperId, request.Lat, request.Lng);
 
+                // CHỈ PHÁT REALTIME tới khách hàng của đơn hàng cụ thể này
                 await _hubContext.Clients.Group(request.OrderId.Value.ToString()).SendAsync("ReceiveLocation", new
                 {
                     lat = request.Lat,

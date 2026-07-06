@@ -23,6 +23,7 @@ namespace TechStore.Repository.Repositories
 
         private IGenericRepository<UserDevice> _userDevices;
         private IGenericRepository<Notification> _notifications;
+        private IGenericRepository<KnowledgeItem> _knowledgeItems;
 
         public UnitOfWork(ApplicationDbContext context, IUserRepositories users, IRefreshTokenRepositories refreshTokens)
         {
@@ -47,6 +48,10 @@ namespace TechStore.Repository.Repositories
      _userDevices ??= new GenericRepository<UserDevice>(_context);
         public IGenericRepository<Notification> Notifications =>
      _notifications ??= new GenericRepository<Notification>(_context);
+        
+        public IGenericRepository<KnowledgeItem> KnowledgeItems =>
+            _knowledgeItems ??= new GenericRepository<KnowledgeItem>(_context);
+
         public ICartRepository Carts =>
              _carts ??= new CartRepository(_context);
 

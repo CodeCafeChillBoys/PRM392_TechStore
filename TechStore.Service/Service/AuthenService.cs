@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using TechStore.Domain.Constants;
 using TechStore.Domain.DTOs.Request;
 using TechStore.Domain.DTOs.Response;
+using TechStore.Domain.Enum;
 using TechStore.Domain.Models;
 using TechStore.Repository.IRepositories;
 using TechStore.Service.IService;
@@ -138,6 +139,49 @@ namespace TechStore.Service.Service
                     Role = newUser.Role.ToString(),
                     IsActive = true,
                     CreatedAt = newUser.CreatedAt
+                }
+            };
+        }
+
+        /// <summary>
+        /// [DEV/ADMIN] Đổi role của user theo email (Customer | Staff).
+        /// Dùng để cấp quyền Staff mà không cần truy cập trực tiếp DB.
+        /// </summary>
+        public async Task<ApiResponse<UserResponse>> SetUserRoleAsync(string email, string role)
+        {
+            var user = await _unitOfWork.Users.GetByEmailAsync(email);
+            if (user == null)
+            {
+                return new ApiResponse<UserResponse>
+                {
+                    success = false,
+                    message = "Không tìm thấy người dùng với email này."
+                };
+            }
+
+            if (!Enum.TryParse<Role>(role, ignoreCase: true, out var parsedRole))
+            {
+                return new ApiResponse<UserResponse>
+                {
+                    success = false,
+                    message = "Role không hợp lệ. Chỉ chấp nhận: Customer hoặc Staff."
+                };
+            }
+
+            user.Role = parsedRole;
+            await _unitOfWork.CompleteAsync(); // EF đang theo dõi entity → lưu là cập nhật
+
+            return new ApiResponse<UserResponse>
+            {
+                success = true,
+                message = $"Đã cập nhật role thành {parsedRole}.",
+                Data = new UserResponse
+                {
+                    UserId = user.Id,
+                    Username = user.FullName,
+                    Role = user.Role.ToString(),
+                    IsActive = true,
+                    CreatedAt = user.CreatedAt
                 }
             };
         }
