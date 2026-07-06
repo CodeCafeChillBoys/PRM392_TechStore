@@ -1,5 +1,5 @@
 using System;
-using TechStore.Domain.DTOs;
+using TechStore.Domain.DTOs.Request;
 
 namespace TechStore.Service.IService
 {

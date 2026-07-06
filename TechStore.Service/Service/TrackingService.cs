@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using TechStore.Domain.DTOs;
+using TechStore.Domain.DTOs.Request;
 using TechStore.Service.IService;
 
 namespace TechStore.Service.Service

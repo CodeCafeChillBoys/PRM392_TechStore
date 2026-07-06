@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using TechStore.Domain.Constants;
-using TechStore.Domain.DTOs;
+using TechStore.Domain.DTOs.Request;
 using TechStore.Service.IService;
 using TechStoreAPI.Hubs;
 
@@ -46,7 +46,7 @@ namespace TechStoreAPI.Controllers
             // A. Lưu toạ độ mới nhất của Shipper vào RAM
             _trackingService.UpdateLocation(request.ShipperId, request.Lat, request.Lng);
 
-            // B. Kiểm tra xem Shipper có đang tập trung giao một đơn cụ thể nào không ("Xem và Chạy")
+            // B. Nếu client đã gửi đúng OrderId thì phát trực tiếp vào phòng của đơn đó
             if (request.OrderId.HasValue && request.OrderId.Value != Guid.Empty)
             {
                 // Lưu thêm theo ĐƠN để GET/khách đọc đúng shipper đang chạy đơn này
@@ -64,7 +64,7 @@ namespace TechStoreAPI.Controllers
             }
             else
             {
-                // Luồng cũ (dự phòng): Phát realtime tới tất cả đơn hàng đang hoạt động của Shipper
+                // C. Fallback: phát tới tất cả đơn đang active của shipper
                 var activeOrderIds = await _orderService.GetActiveOrderIdsByShipperAsync(request.ShipperId);
                 foreach (var orderId in activeOrderIds)
                 {
