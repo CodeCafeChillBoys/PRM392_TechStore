@@ -56,7 +56,13 @@ namespace TechStore.Service.Service
                     FullName = payload.Name,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
                     Role = Role.Customer,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    Wallet = new Wallet
+                    {
+                        Balance = 0,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    }
                 };
                 await _unitOfWork.Users.AddAsync(user);
                 await _unitOfWork.CompleteAsync();

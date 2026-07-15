@@ -4,9 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using TechStore.Domain.Models;
 using TechStore.Domain.Settings;
 using TechStore.Service.IService;
 
@@ -34,7 +32,11 @@ namespace TechStore.Service.Service
         // ─────────────────────────────────────────────────────────────────────
         // CREATE PAYMENT URL
         // ─────────────────────────────────────────────────────────────────────
-        public string CreatePaymentUrl(Order order, string ipAddress)
+        public string CreatePaymentUrl(
+            Guid transactionReference,
+            decimal topUpAmount,
+            string description,
+            string ipAddress)
         {
             // VNPay requires Vietnam time (UTC+7)
             var vnTimeZoneId = OperatingSystem.IsWindows()
@@ -44,7 +46,7 @@ namespace TechStore.Service.Service
             var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
 
             // Amount must be multiplied by 100 (VNPay uses integer, no decimal)
-            var amount = ((long)(order.TotalAmount * 100)).ToString();
+            var amount = checked(((long)(topUpAmount * 100))).ToString();
 
             // VNPay only accepts IPv4 — map IPv6 loopback to 127.0.0.1
             var ip = (ipAddress == "::1" || ipAddress == "0:0:0:0:0:0:0:1")
@@ -62,10 +64,10 @@ namespace TechStore.Service.Service
                 ["vnp_CurrCode"]   = "VND",
                 ["vnp_IpAddr"]     = ip,
                 ["vnp_Locale"]     = "vn",
-                ["vnp_OrderInfo"]  = $"Thanh toan don hang {order.Id}",
+                ["vnp_OrderInfo"]  = description,
                 ["vnp_OrderType"]  = "other",
                 ["vnp_ReturnUrl"]  = _settings.ReturnUrl,
-                ["vnp_TxnRef"]     = order.Id.ToString(),
+                ["vnp_TxnRef"]     = transactionReference.ToString(),
                 ["vnp_ExpireDate"] = vnNow.AddMinutes(15).ToString("yyyyMMddHHmmss"),
             };
 
@@ -90,12 +92,12 @@ namespace TechStore.Service.Service
         public bool ValidateSignature(
             string rawQueryString,
             out string responseCode,
-            out string transactionId,
-            out string orderId)
+            out string vnpayTransactionId,
+            out string transactionReference)
         {
             responseCode  = string.Empty;
-            transactionId = string.Empty;
-            orderId       = string.Empty;
+            vnpayTransactionId = string.Empty;
+            transactionReference = string.Empty;
 
             if (string.IsNullOrEmpty(rawQueryString))
                 return false;
@@ -130,8 +132,8 @@ namespace TechStore.Service.Service
 
             // Rebuild output params (decoded for caller use)
             responseCode  = Decode(paramDict, "vnp_ResponseCode");
-            transactionId = Decode(paramDict, "vnp_TransactionNo");
-            orderId       = Decode(paramDict, "vnp_TxnRef");
+            vnpayTransactionId = Decode(paramDict, "vnp_TransactionNo");
+            transactionReference = Decode(paramDict, "vnp_TxnRef");
 
             // Reproduce VNPay's sign string from decoded key + raw (encoded) value
             var signData     = string.Join("&", paramDict.Select(kv => $"{kv.Key}={kv.Value}"));

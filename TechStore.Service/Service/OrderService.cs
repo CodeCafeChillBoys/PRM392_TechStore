@@ -1,4 +1,5 @@
 using AutoMapper;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Domain.DTOs;
 using TechStore.Domain.DTOs.Request;
@@ -15,20 +16,17 @@ namespace TechStore.Service.Service
     {
         private readonly ApplicationDbContext _context;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IVnpayService _vnpayService;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
 
         public OrderService(
             ApplicationDbContext context,
             IUnitOfWork unitOfWork,
-            IVnpayService vnpayService,
             IMapper mapper,
             INotificationService notificationService)
         {
             _context = context;
             _unitOfWork = unitOfWork;
-            _vnpayService = vnpayService;
             _mapper = mapper;
             _notificationService = notificationService;
         }
@@ -110,11 +108,13 @@ namespace TechStore.Service.Service
         }
 
         // =====================================================================
-        // CHECKOUT + VNPAY (from checkout/billing branch — uses DbContext)
+        // CHECKOUT (wallet payments and order data are committed atomically)
         // =====================================================================
 
-        public async Task<CheckoutResult> CheckoutAsync(CheckoutRequest request, string ipAddress)
+        public async Task<CheckoutResult> CheckoutAsync(CheckoutRequest request)
         {
+            await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
             // 1. Load cart items for the user (include Product info)
             var cartItems = await _context.Carts
                 .Where(c => c.UserId == request.UserId)
@@ -148,10 +148,10 @@ namespace TechStore.Service.Service
             // 3. Calculate total
             decimal total = cartItems.Sum(c => c.Product!.Price * c.Quantity);
 
-            // 4. Determine initial statuses
-            bool isVnpay = request.PaymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase);
-            string orderStatus = isVnpay ? "PendingPayment" : "Pending";
-            string paymentStatus = "Pending";
+            // 4. Wallet payments are completed immediately; other methods remain pending.
+            bool isWallet = request.PaymentMethod.Equals("Wallet", StringComparison.OrdinalIgnoreCase);
+            string orderStatus = isWallet ? "Confirmed" : "Pending";
+            string paymentStatus = isWallet ? "Paid" : "Pending";
 
             // 5. Create Order entity
             var order = new Order
@@ -176,21 +176,59 @@ namespace TechStore.Service.Service
                 UnitPrice = c.Product!.Price
             }).ToList();
 
-            // 7. Deduct stock
+            // 7. Lock and debit the wallet before creating a paid order.
+            WalletTransaction? walletTransaction = null;
+            if (isWallet)
+            {
+                var wallet = await _context.Wallets
+                    .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"UserId\" = {request.UserId} FOR UPDATE")
+                    .SingleOrDefaultAsync();
+
+                if (wallet == null)
+                    throw new InvalidOperationException("Không tìm thấy ví của người dùng.");
+
+                if (wallet.Balance < total)
+                    throw new InvalidOperationException(
+                        $"Số dư ví không đủ. Số dư hiện tại: {wallet.Balance:N0}đ, cần thanh toán: {total:N0}đ.");
+
+                var before = wallet.Balance;
+                wallet.Balance -= total;
+                wallet.UpdatedAt = DateTime.UtcNow;
+
+                walletTransaction = new WalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    WalletId = wallet.Id,
+                    Type = WalletTransactionType.Payment,
+                    Status = WalletTransactionStatus.Completed,
+                    Amount = total,
+                    BalanceBefore = before,
+                    BalanceAfter = wallet.Balance,
+                    Description = $"Thanh toán đơn hàng {order.Id}",
+                    OrderId = order.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    ProcessedAt = DateTime.UtcNow
+                };
+            }
+
+            // 8. Deduct stock
             foreach (var item in cartItems)
                 item.Product!.StockQuantity -= item.Quantity;
 
-            // 8. Persist everything atomically (clear cart immediately)
+            // 9. Persist order, stock, cart and wallet ledger atomically.
             await _context.Orders.AddAsync(order);
             await _context.OrderDetails.AddRangeAsync(orderDetails);
+            if (walletTransaction != null)
+                await _context.WalletTransactions.AddAsync(walletTransaction);
             _context.Carts.RemoveRange(cartItems);
             await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
 
-            // 9. Load user and populate relations for AutoMapper
+            // 10. Populate relations for AutoMapper.
             var user = await _context.Users.FindAsync(request.UserId);
             var productLookup = cartItems.ToDictionary(c => c.ProductId, c => c.Product!);
 
-            order.User = user;
+            order.User = user!;
             foreach (var detail in orderDetails)
             {
                 if (productLookup.TryGetValue(detail.ProductId, out var product))
@@ -202,82 +240,26 @@ namespace TechStore.Service.Service
 
             var orderResponse = _mapper.Map<OrderResponseDTO>(order);
 
-            // 10. For VNPay → build payment URL
-            string? paymentUrl = null;
-            if (isVnpay)
-                paymentUrl = _vnpayService.CreatePaymentUrl(order, ipAddress);
-
-            if (!isVnpay)
-            {
-                await _notificationService.CreateAndSendNotificationAsync(
-                   new CreateNotificationRequest
-                   {
-                       UserId = request.UserId,
-                       Title = $"🎉 Đặt hàng thành công đơn #{order.Id.ToString()[..8]}",
-                       Body = "Đơn hàng của bạn đã được tiếp nhận và đang chờ duyệt.",
-                       Type = NotificationType.Order,
-                       Icon = NotificationIcon.Gift,
-                       Tone = NotificationTone.Accent
-                   }
-                );
-            }
+            await _notificationService.CreateAndSendNotificationAsync(
+               new CreateNotificationRequest
+               {
+                   UserId = request.UserId,
+                   Title = isWallet
+                       ? $"💳 Thanh toán thành công đơn #{order.Id.ToString()[..8]}"
+                       : $"🎉 Đặt hàng thành công đơn #{order.Id.ToString()[..8]}",
+                   Body = isWallet
+                       ? "Đơn hàng đã được thanh toán bằng số dư ví. TechStore đang chuẩn bị hàng để giao cho bạn."
+                       : "Đơn hàng của bạn đã được tiếp nhận và đang chờ duyệt.",
+                   Type = NotificationType.Order,
+                   Icon = NotificationIcon.Gift,
+                   Tone = NotificationTone.Accent
+               }
+            );
 
             return new CheckoutResult
             {
-                Order = orderResponse,
-                PaymentUrl = paymentUrl
+                Order = orderResponse
             };
-        }
-
-        public async Task<bool> ConfirmVnpayPaymentAsync(Guid orderId, bool success, string transactionId)
-        {
-            var order = await _context.Orders.FindAsync(orderId);
-            if (order == null) return false;
-
-            // Idempotency guard — don't process twice
-            if (order.PaymentStatus != "Pending") return true;
-
-            if (success)
-            {
-                order.Status = "Confirmed";
-                order.PaymentStatus = "Paid";
-                order.VnpayTransactionId = transactionId;
-
-                await _context.SaveChangesAsync();
-
-                await _notificationService.CreateAndSendNotificationAsync(
-                   new CreateNotificationRequest
-                   {
-                       UserId = order.UserId,
-                       Title = $"💳 Thanh toán thành công đơn #{order.Id.ToString()[..8]}",
-                       Body = "Giao dịch VNPay thành công. TechStore đang chuẩn bị hàng để giao cho bạn.",
-                       Type = NotificationType.Order,
-                       Icon = NotificationIcon.Gift,
-                       Tone = NotificationTone.Accent
-                   }
-                );
-            }
-            else
-            {
-                order.Status = "Cancelled";
-                order.PaymentStatus = "Failed";
-
-                await _context.SaveChangesAsync();
-
-                await _notificationService.CreateAndSendNotificationAsync(
-                   new CreateNotificationRequest
-                   {
-                       UserId = order.UserId,
-                       Title = $"❌ Giao dịch VNPay thất bại",
-                       Body = $"Thanh toán đơn hàng #{order.Id.ToString()[..8]} không thành công. Đơn hàng đã bị hủy.",
-                       Type = NotificationType.Order,
-                       Icon = NotificationIcon.Bell,
-                       Tone = NotificationTone.Error
-                   }
-                );
-            }
-
-            return true;
         }
 
 

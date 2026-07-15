@@ -9,11 +9,12 @@ namespace TechStore.Domain.DTOs
         public string ShippingAddress { get; set; } = string.Empty;
 
         /// <summary>
-        /// Accepted values: "COD", "BankTransfer", "CreditCard"
+        /// Accepted values: "COD", "BankTransfer", "CreditCard", "Wallet".
+        /// VNPay is only used to top up the wallet.
         /// </summary>
         [Required(ErrorMessage = "Payment method is required.")]
-        [RegularExpression("^(COD|BankTransfer|CreditCard|VNPay)$",
-            ErrorMessage = "PaymentMethod must be one of: COD, BankTransfer, CreditCard, VNPay.")]
+        [RegularExpression("^(COD|BankTransfer|CreditCard|Wallet)$",
+            ErrorMessage = "PaymentMethod must be one of: COD, BankTransfer, CreditCard, Wallet.")]
         public string PaymentMethod { get; set; } = "COD";
 
         /// <summary>

@@ -1,5 +1,7 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -30,13 +32,14 @@ namespace TechStoreAPI.Controllers
 
         // ─────────────────────────────────────────────────────────────────────
         // POST /api/orders/checkout
-        // Checkout from user's cart (supports COD/BankTransfer/CreditCard/VNPay)
+        // Checkout from user's cart (supports COD/BankTransfer/CreditCard/Wallet)
         // ─────────────────────────────────────────────────────────────────────
         /// <summary>
         /// Places an order from the user's cart.
-        /// - COD/BankTransfer/CreditCard: returns full order details (status=Pending).
-        /// - VNPay: returns order + paymentUrl (status=PendingPayment). Client must open paymentUrl.
+        /// Wallet payments debit the wallet and confirm the order immediately.
+        /// VNPay is used only by /api/wallet/top-up.
         /// </summary>
+        [Authorize]
         [HttpPost("checkout")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -46,36 +49,21 @@ namespace TechStoreAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var authenticatedUserId))
+                return Unauthorized(new { message = "Không xác thực được người dùng." });
+
+            // Never trust a client-supplied user ID for wallet operations.
+            request.UserId = authenticatedUserId;
+
             try
             {
-                // Get client IP for VNPay payment URL (required by VNPay spec)
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-
-                var result = await _orderService.CheckoutAsync(request, ipAddress);
+                var result = await _orderService.CheckoutAsync(request);
 
                 _logger.LogInformation(
-                    "Order {OrderId} created — Method: {Method}, RequiresPayment: {RequiresPayment}",
-                    result.Order.Id, request.PaymentMethod, result.RequiresOnlinePayment);
+                    "Order {OrderId} created — Method: {Method}",
+                    result.Order.Id, request.PaymentMethod);
 
-                // VNPay flow → return paymentUrl for client to open
-                if (result.RequiresOnlinePayment)
-                {
-                    return CreatedAtAction(
-                        nameof(GetOrder),
-                        new { id = result.Order.Id },
-                        new
-                        {
-                            message            = "Order created. Please complete payment via VNPay.",
-                            requiresPayment    = true,
-                            paymentUrl         = result.PaymentUrl,
-                            orderId            = result.Order.Id,
-                            totalAmount        = result.Order.TotalAmount,
-                            orderStatus        = result.Order.Status,
-                            paymentStatus      = result.Order.PaymentStatus
-                        });
-                }
-
-                // COD / BankTransfer / CreditCard → order confirmed immediately
                 return CreatedAtAction(
                     nameof(GetOrder),
                     new { id = result.Order.Id },
