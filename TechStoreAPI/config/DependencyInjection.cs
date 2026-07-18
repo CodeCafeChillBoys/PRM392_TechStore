@@ -24,6 +24,7 @@ namespace TechStoreAPI.config
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IWalletService, WalletService>();
             services.AddScoped<ICartService, CartService>();
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IUserDeviceService, UserDeviceService>();

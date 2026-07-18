@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TechStore.Repository.Data;
@@ -11,9 +12,11 @@ using TechStore.Repository.Data;
 namespace TechStore.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715151803_AddWallet")]
+    partial class AddWallet
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -554,13 +557,13 @@ namespace TechStore.Repository.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasFilter("\"OrderId\" IS NOT NULL");
+
                     b.HasIndex("VnpayTransactionId")
                         .IsUnique()
                         .HasFilter("\"VnpayTransactionId\" IS NOT NULL");
-
-                    b.HasIndex("OrderId", "Type")
-                        .IsUnique()
-                        .HasFilter("\"OrderId\" IS NOT NULL");
 
                     b.HasIndex("WalletId", "CreatedAt");
 
@@ -708,8 +711,8 @@ namespace TechStore.Repository.Migrations
             modelBuilder.Entity("TechStore.Domain.Models.WalletTransaction", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
+                        .WithOne()
+                        .HasForeignKey("TechStore.Domain.Models.WalletTransaction", "OrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("TechStore.Domain.Models.Wallet", "Wallet")

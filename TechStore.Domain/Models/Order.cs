@@ -21,7 +21,7 @@ namespace TechStore.Domain.Models
 
         /// <summary>
         /// Payment status independent of order status.
-        /// Values: Pending | Paid | Failed | Cancelled
+        /// Values: Pending | Paid | Failed | Cancelled | Refunded
         /// </summary>
         public string PaymentStatus { get; set; } = "Pending";
 
