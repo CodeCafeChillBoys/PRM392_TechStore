@@ -83,7 +83,11 @@ namespace TechStoreAPI.config
                 };
             });
 
-            services.AddAuthorization();
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
+                options.AddPolicy("StaffOrAdmin", p => p.RequireRole("Staff", "Admin"));
+            });
 
             return services;
         }

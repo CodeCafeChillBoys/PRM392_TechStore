@@ -37,6 +37,14 @@ namespace TechStore.Service.Service
             order.Status = ShippingConstants.StatusDelivered;
             order.DeliveryProofImageUrl = $"/uploads/delivery-proofs/{uniqueFileName}";
 
+            // COD/khác VNPay: giao xong = shipper đã thu tiền mặt → ghi nhận đã thanh toán.
+            if (order.Status == "Delivered"
+                && !string.Equals(order.PaymentMethod, "VNPay", StringComparison.OrdinalIgnoreCase)
+                && order.PaymentStatus == "Pending")
+            {
+                order.PaymentStatus = "Paid";
+            }
+
             _unitOfWork.Orders.Update(order);
             await _unitOfWork.CompleteAsync();
 

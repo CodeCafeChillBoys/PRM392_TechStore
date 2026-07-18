@@ -164,7 +164,7 @@ namespace TechStore.Service.Service
                 return new ApiResponse<UserResponse>
                 {
                     success = false,
-                    message = "Role không hợp lệ. Chỉ chấp nhận: Customer hoặc Staff."
+                    message = "Role không hợp lệ. Chỉ chấp nhận: Customer, Staff hoặc Admin."
                 };
             }
 

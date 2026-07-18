@@ -18,6 +18,10 @@ namespace TechStore.Domain.DTOs.Response
         public string? VnpayTransactionId { get; set; }
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+
+        public decimal ShippingFee { get; set; }
+
+        public Guid? StaffId { get; set; }
         public List<OrderDetailResponseDTO> OrderDetails { get; set; } = new();
     }
 }

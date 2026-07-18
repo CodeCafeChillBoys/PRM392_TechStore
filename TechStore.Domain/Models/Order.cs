@@ -25,9 +25,7 @@ namespace TechStore.Domain.Models
         /// </summary>
         public string PaymentStatus { get; set; } = "Pending";
 
-        /// <summary>
-        /// VNPay transaction number (vnp_TransactionNo) — null for COD/BankTransfer.
-        /// </summary>
+      
         public string? VnpayTransactionId { get; set; }
 
         public User User { get; set; }
@@ -38,5 +36,16 @@ namespace TechStore.Domain.Models
         public string? DeliveryProofImageUrl { get; set; }
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+
+        /// <summary>
+        /// Phi van chuyen cua don (khach tra) — nen tang tinh hoa hong shipper.
+        /// Khop migration AddShippingFeeAndVehicleToOrder (numeric, default 0).
+        /// </summary>
+        public decimal ShippingFee { get; set; }
+
+        /// <summary>
+        /// Loai xe shipper giao don nay (nullable — chua gan khi moi tao don).
+        /// </summary>
+        public string? ShipperVehicle { get; set; }
     }
 }

@@ -18,6 +18,7 @@ namespace TechStore.Repository.Repositories
         public async Task<IEnumerable<Order>> GetOrdersWithDetailsAsync()
         {
             return await _context.Orders
+                .Include(o => o.User) // fix: khong co dong nay -> CustomerName/Email rong
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
                 .OrderByDescending(o => o.OrderDate)
@@ -27,6 +28,7 @@ namespace TechStore.Repository.Repositories
         public async Task<Order?> GetOrderByIdWithDetailsAsync(Guid id)
         {
             return await _context.Orders
+                .Include(o => o.User)
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
                 .FirstOrDefaultAsync(o => o.Id == id);

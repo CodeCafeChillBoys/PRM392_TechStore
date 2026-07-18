@@ -27,6 +27,8 @@ namespace TechStoreAPI.config
             services.AddScoped<ICartService, CartService>();
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IUserDeviceService, UserDeviceService>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IAdminService, AdminService>();
             services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
             services.AddScoped<INotificationService, NotificationService>();
 

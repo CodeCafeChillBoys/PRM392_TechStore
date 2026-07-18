@@ -94,6 +94,15 @@ namespace TechStore.Service.Service
             if (order != null)
             {
                 order.Status = newStatus;
+
+                // COD/khác VNPay: giao xong = shipper đã thu tiền mặt → ghi nhận đã thanh toán.
+                if (newStatus == "Delivered"
+                    && !string.Equals(order.PaymentMethod, "VNPay", StringComparison.OrdinalIgnoreCase)
+                    && order.PaymentStatus == "Pending")
+                {
+                    order.PaymentStatus = "Paid";
+                }
+
                 _unitOfWork.Orders.Update(order);
                 await _unitOfWork.CompleteAsync();
             }
@@ -147,6 +156,8 @@ namespace TechStore.Service.Service
 
             // 3. Calculate total
             decimal total = cartItems.Sum(c => c.Product!.Price * c.Quantity);
+            // Tổng khách trả = tiền hàng + phí ship — khớp số FE hiển thị và số VNPay thu.
+            total += request.ShippingFee;
 
             // 4. Determine initial statuses
             bool isVnpay = request.PaymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase);
@@ -163,7 +174,8 @@ namespace TechStore.Service.Service
                 ShippingAddress = request.ShippingAddress,
                 PaymentMethod = request.PaymentMethod,
                 Status = orderStatus,
-                PaymentStatus = paymentStatus
+                PaymentStatus = paymentStatus,
+                ShippingFee = request.ShippingFee,
             };
 
             // 6. Create OrderDetail entities
