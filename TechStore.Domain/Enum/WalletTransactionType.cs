@@ -4,6 +4,7 @@ namespace TechStore.Domain.Enum
     {
         TopUp,
         Payment,
-        Withdrawal
+        Withdrawal,
+        Refund
     }
 }

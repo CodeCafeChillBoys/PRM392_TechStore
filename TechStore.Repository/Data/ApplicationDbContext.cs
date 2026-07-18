@@ -72,7 +72,7 @@ namespace TechStore.Repository.Data
                 entity.HasIndex(transaction => transaction.VnpayTransactionId)
                     .IsUnique()
                     .HasFilter("\"VnpayTransactionId\" IS NOT NULL");
-                entity.HasIndex(transaction => transaction.OrderId)
+                entity.HasIndex(transaction => new { transaction.OrderId, transaction.Type })
                     .IsUnique()
                     .HasFilter("\"OrderId\" IS NOT NULL");
                 entity.HasOne(transaction => transaction.Wallet)
@@ -80,8 +80,8 @@ namespace TechStore.Repository.Data
                     .HasForeignKey(transaction => transaction.WalletId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(transaction => transaction.Order)
-                    .WithOne()
-                    .HasForeignKey<WalletTransaction>(transaction => transaction.OrderId)
+                    .WithMany()
+                    .HasForeignKey(transaction => transaction.OrderId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 

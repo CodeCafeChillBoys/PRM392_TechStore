@@ -149,19 +149,29 @@ namespace TechStoreAPI.Controllers
         // ─────────────────────────────────────────────────────────────────────
         // PUT /api/orders/{id}/status (Accepts raw string body like "Confirmed")
         // ─────────────────────────────────────────────────────────────────────
+        [Authorize]
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateOrderStatusPut(Guid id, [FromBody] string newStatus)
         {
             var existingOrder = await _orderService.GetOrderByIdAsync(id);
             if (existingOrder == null) return NotFound("Đơn hàng không tồn tại");
+            if (!CanUpdateOrderStatus(existingOrder, newStatus)) return Forbid();
 
-            await _orderService.UpdateOrderStatusAsync(id, newStatus);
-            return NoContent();
+            try
+            {
+                await _orderService.UpdateOrderStatusAsync(id, newStatus);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────
         // PATCH /api/orders/{id}/status (Accepts JSON body {"status": "Confirmed"})
         // ─────────────────────────────────────────────────────────────────────
+        [Authorize]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateOrderStatusPatch(Guid id, [FromBody] UpdateOrderStatusRequest request)
         {
@@ -170,9 +180,17 @@ namespace TechStoreAPI.Controllers
 
             var existingOrder = await _orderService.GetOrderByIdAsync(id);
             if (existingOrder == null) return NotFound("Đơn hàng không tồn tại");
+            if (!CanUpdateOrderStatus(existingOrder, request.Status)) return Forbid();
 
-            await _orderService.UpdateOrderStatusAsync(id, request.Status);
-            return NoContent();
+            try
+            {
+                await _orderService.UpdateOrderStatusAsync(id, request.Status);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -208,6 +226,7 @@ namespace TechStoreAPI.Controllers
             => GetOrdersByUser(userId);
 
         [ApiExplorerSettings(IgnoreApi = true)]
+        [Authorize]
         [HttpPatch("/api/order/{id}/status")]
         public Task<IActionResult> UpdateOrderStatusPatchCompat(Guid id, [FromBody] UpdateOrderStatusRequest request)
             => UpdateOrderStatusPatch(id, request);
@@ -246,6 +265,17 @@ namespace TechStoreAPI.Controllers
 
             await _orderService.AssignShipperAsync(id, staffId);
             return NoContent();
+        }
+
+        private bool CanUpdateOrderStatus(TechStore.Domain.Models.Order order, string newStatus)
+        {
+            if (User.IsInRole("Staff"))
+                return true;
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return Guid.TryParse(userIdClaim, out var userId) &&
+                   order.UserId == userId &&
+                   newStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
         }
     }
 

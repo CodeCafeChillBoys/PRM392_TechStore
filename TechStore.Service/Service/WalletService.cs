@@ -134,15 +134,16 @@ namespace TechStore.Service.Service
                 Id = Guid.NewGuid(),
                 WalletId = wallet.Id,
                 Type = WalletTransactionType.Withdrawal,
-                Status = WalletTransactionStatus.Pending,
+                Status = WalletTransactionStatus.Completed,
                 Amount = request.Amount,
                 BalanceBefore = before,
                 BalanceAfter = wallet.Balance,
-                Description = "Yêu cầu rút tiền từ ví",
+                Description = "Đã rút tiền từ ví và chuyển về tài khoản ngân hàng",
                 BankName = request.BankName.Trim(),
                 BankAccountNumber = request.BankAccountNumber.Trim(),
                 AccountHolderName = request.AccountHolderName.Trim(),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                ProcessedAt = DateTime.UtcNow
             };
 
             await _context.WalletTransactions.AddAsync(transaction);

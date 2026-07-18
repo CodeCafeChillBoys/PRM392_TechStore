@@ -84,7 +84,7 @@ namespace TechStoreAPI.Controllers
         }
 
         /// <summary>
-        /// Creates a withdrawal request and reserves the amount immediately.
+        /// Completes a withdrawal and deducts the amount immediately.
         /// The minimum withdrawal amount is 50,000 VND and the wallet balance must be greater than 50,000 VND.
         /// </summary>
         [HttpPost("withdraw")]
@@ -99,7 +99,7 @@ namespace TechStoreAPI.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = "Yêu cầu rút tiền đã được tạo và đang chờ xử lý.",
+                    message = "Rút tiền thành công. Số tiền đã được chuyển về tài khoản ngân hàng.",
                     data = transaction
                 });
             }

@@ -88,13 +88,83 @@ namespace TechStore.Service.Service
 
         public async Task UpdateOrderStatusAsync(Guid id, string newStatus)
         {
-            var order = await _unitOfWork.Orders.GetByIdAsync(id);
-            if (order != null)
+            await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+
+            var order = await _context.Orders
+                .FromSqlInterpolated($"SELECT * FROM \"Orders\" WHERE \"Id\" = {id} FOR UPDATE")
+                .SingleOrDefaultAsync();
+
+            if (order == null)
+                return;
+
+            var isCancellation = newStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
+            if (isCancellation && order.Status.Equals("Delivered", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Không thể hủy đơn hàng đã giao thành công.");
+
+            if (isCancellation)
+            {
+                await RefundPaidWalletOrderAsync(order);
+                order.Status = "Cancelled";
+            }
+            else
             {
                 order.Status = newStatus;
-                _unitOfWork.Orders.Update(order);
-                await _unitOfWork.CompleteAsync();
             }
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+        }
+
+        private async Task RefundPaidWalletOrderAsync(Order order)
+        {
+            if (!order.PaymentMethod.Equals("Wallet", StringComparison.OrdinalIgnoreCase) ||
+                !order.PaymentStatus.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // The unique (OrderId, Type) index and the locked order make this idempotent.
+            var existingRefund = await _context.WalletTransactions
+                .AnyAsync(transaction => transaction.OrderId == order.Id &&
+                                         transaction.Type == WalletTransactionType.Refund);
+            if (existingRefund)
+            {
+                order.PaymentStatus = "Refunded";
+                return;
+            }
+
+            var paymentTransaction = await _context.WalletTransactions
+                .SingleOrDefaultAsync(transaction => transaction.OrderId == order.Id &&
+                                                     transaction.Type == WalletTransactionType.Payment &&
+                                                     transaction.Status == WalletTransactionStatus.Completed);
+
+            if (paymentTransaction == null)
+                throw new InvalidOperationException("Không tìm thấy giao dịch thanh toán ví của đơn hàng.");
+
+            var wallet = await _context.Wallets
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {paymentTransaction.WalletId} FOR UPDATE")
+                .SingleAsync();
+
+            var before = wallet.Balance;
+            wallet.Balance += paymentTransaction.Amount;
+            wallet.UpdatedAt = DateTime.UtcNow;
+
+            await _context.WalletTransactions.AddAsync(new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                WalletId = wallet.Id,
+                Type = WalletTransactionType.Refund,
+                Status = WalletTransactionStatus.Completed,
+                Amount = paymentTransaction.Amount,
+                BalanceBefore = before,
+                BalanceAfter = wallet.Balance,
+                Description = $"Hoàn tiền đơn hàng {order.Id}",
+                OrderId = order.Id,
+                CreatedAt = DateTime.UtcNow,
+                ProcessedAt = DateTime.UtcNow
+            });
+
+            order.PaymentStatus = "Refunded";
         }
 
         public async Task DeleteOrderAsync(Guid id)
