@@ -25,6 +25,9 @@ namespace TechStore.Domain.Models
         /// </summary>
         public string PaymentStatus { get; set; } = "Pending";
 
+        /// <summary>Phí ship khách trả (đã gồm trong TotalAmount). 0 với đơn cũ.</summary>
+        public decimal ShippingFee { get; set; } = 0;
+
         /// <summary>
         /// VNPay transaction number (vnp_TransactionNo) — null for COD/BankTransfer.
         /// </summary>
@@ -38,5 +41,13 @@ namespace TechStore.Domain.Models
         public string? DeliveryProofImageUrl { get; set; }
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+
+        // ── Hoàn tiền (refund) — TH2: hoàn sau khi đã giao ──
+        public string? RefundReason { get; set; }
+        public string? RefundImageUrl { get; set; }
+        public DateTime? RefundRequestedAt { get; set; }
+
+        /// <summary>Thời điểm đơn được giao thành công — mốc tính cửa sổ hoàn tiền 1 ngày.</summary>
+        public DateTime? DeliveredAt { get; set; }
     }
 }

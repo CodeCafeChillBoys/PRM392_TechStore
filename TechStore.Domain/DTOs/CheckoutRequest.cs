@@ -23,5 +23,8 @@ namespace TechStore.Domain.DTOs
         /// </summary>
         [Required]
         public Guid UserId { get; set; }
+
+        /// <summary>Phí ship do FE tính và gửi lên, cộng vào tổng tiền đơn hàng.</summary>
+        public decimal ShippingFee { get; set; } = 0;
     }
 }

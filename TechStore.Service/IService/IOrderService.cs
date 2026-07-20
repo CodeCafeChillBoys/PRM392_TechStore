@@ -33,5 +33,13 @@ namespace TechStore.Service.IService
         Task<bool> ConfirmDeliveryAsync(Guid orderId, IFormFile imageFile);
         // gán đơn hàng cho shipperId
         Task AssignShipperAsync(Guid orderId, Guid staffId);
+
+        // ── Refund (hoàn tiền về Ví) — TH2: hoàn sau khi đã giao ────────────────
+        // Khách gửi yêu cầu hoàn tiền cho đơn Delivered + Paid.
+        Task<bool> RequestRefundAsync(Guid orderId, Guid userId, string reason, IFormFile? image);
+        // Staff duyệt hoàn: cộng ví khách + cộng lại kho + PaymentStatus = Refunded.
+        Task<bool> ApproveRefundAsync(Guid orderId);
+        // Staff từ chối hoàn: về lại PaymentStatus = Paid.
+        Task<bool> RejectRefundAsync(Guid orderId);
     }
 }

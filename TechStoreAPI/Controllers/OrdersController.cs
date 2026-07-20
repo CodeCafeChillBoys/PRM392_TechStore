@@ -267,6 +267,57 @@ namespace TechStoreAPI.Controllers
             return NoContent();
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // Refund (hoàn tiền về Ví) — TH2: hoàn sau khi đã giao
+        // ─────────────────────────────────────────────────────────────────────
+
+        // POST /api/orders/{id}/refund-request — khách gửi yêu cầu hoàn tiền
+        [Authorize]
+        [HttpPost("{id}/refund-request")]
+        public async Task<IActionResult> RefundRequest(Guid id, [FromForm] RefundRequestDTO dto)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Không xác thực được người dùng." });
+
+            try
+            {
+                var result = await _orderService.RequestRefundAsync(id, userId, dto.Reason, dto.Image);
+                if (!result)
+                    return BadRequest(new { message = "Không thể yêu cầu hoàn cho đơn này." });
+
+                return Ok(new { message = "Đã gửi yêu cầu hoàn tiền." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // PUT /api/orders/{id}/refund-approve — staff duyệt hoàn tiền vào ví khách
+        [Authorize(Roles = "Staff,Admin")]
+        [HttpPut("{id}/refund-approve")]
+        public async Task<IActionResult> ApproveRefund(Guid id)
+        {
+            var result = await _orderService.ApproveRefundAsync(id);
+            if (!result)
+                return BadRequest(new { message = "Đơn không ở trạng thái chờ duyệt hoàn." });
+
+            return Ok(new { message = "Đã duyệt hoàn tiền vào ví khách." });
+        }
+
+        // PUT /api/orders/{id}/refund-reject — staff từ chối yêu cầu hoàn tiền
+        [Authorize(Roles = "Staff,Admin")]
+        [HttpPut("{id}/refund-reject")]
+        public async Task<IActionResult> RejectRefund(Guid id)
+        {
+            var result = await _orderService.RejectRefundAsync(id);
+            if (!result)
+                return BadRequest(new { message = "Đơn không ở trạng thái chờ duyệt hoàn." });
+
+            return Ok(new { message = "Đã từ chối yêu cầu hoàn." });
+        }
+
         private bool CanUpdateOrderStatus(TechStore.Domain.Models.Order order, string newStatus)
         {
             if (User.IsInRole("Staff"))
