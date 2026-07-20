@@ -72,21 +72,17 @@ namespace TechStore.Service.Service
             var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(jsonString);
             var responseContent = geminiResponse?.Candidates?.FirstOrDefault()?.Content;
 
-            FunctionCall? functionCall = null;
-            string? textReply = null;
+            var functionCalls = responseContent?.Parts?
+                .Where(p => p.FunctionCall != null)
+                .Select(p => p.FunctionCall!)
+                .ToList();
 
-            if (responseContent?.Parts != null)
-            {
-                foreach (var p in responseContent.Parts)
-                {
-                    if (p.FunctionCall != null) functionCall = p.FunctionCall;
-                    if (p.Text != null) textReply = p.Text;
-                }
-            }
+            string? textReply = responseContent?.Parts?
+                .FirstOrDefault(p => p.Text != null)?.Text;
 
-            if (functionCall != null)
+            if (functionCalls != null && functionCalls.Any())
             {
-                return await HandleFunctionCallAsync(url, functionCall, request.Message, requestPayload, responseContent!);
+                return await HandleMultipleFunctionCallsAsync(url, functionCalls, request.Message, requestPayload, responseContent!);
             }
             
             if (textReply != null)
@@ -197,184 +193,178 @@ namespace TechStore.Service.Service
             };
         }
 
-        private async Task<ChatResponse> HandleFunctionCallAsync(
+        private async Task<ChatResponse> HandleMultipleFunctionCallsAsync(
             string url, 
-            FunctionCall functionCall, 
+            List<FunctionCall> functionCalls, 
             string userMessage, 
             GeminiRequest basePayload, 
             Content modelResponseContent)
         {
-            var functionName = functionCall.Name;
+            var functionResponseParts = new List<Part>();
 
-            if (functionName == "query_products" || functionName == "search_product")
+            foreach (var functionCall in functionCalls)
             {
-                var keyword = functionCall.Args?.ContainsKey("keyword") == true ? functionCall.Args["keyword"]?.ToString() ?? "" : "";
-                var brand = functionCall.Args?.ContainsKey("brand") == true ? functionCall.Args["brand"]?.ToString() ?? "" : "";
-                var categoryName = functionCall.Args?.ContainsKey("categoryName") == true ? functionCall.Args["categoryName"]?.ToString() ?? "" : "";
-                
-                double? minPrice = null;
-                if (functionCall.Args?.ContainsKey("minPrice") == true && double.TryParse(functionCall.Args["minPrice"]?.ToString(), out double minP)) minPrice = minP;
-
-                double? maxPrice = null;
-                if (functionCall.Args?.ContainsKey("maxPrice") == true && double.TryParse(functionCall.Args["maxPrice"]?.ToString(), out double maxP)) maxPrice = maxP;
-
-                var sortBy = functionCall.Args?.ContainsKey("sortBy") == true ? functionCall.Args["sortBy"]?.ToString() ?? "" : "";
-                
-                bool descending = false;
-                if (functionCall.Args?.ContainsKey("descending") == true && bool.TryParse(functionCall.Args["descending"]?.ToString(), out bool desc)) descending = desc;
-
-                int limit = 10;
-                if (functionCall.Args?.ContainsKey("limit") == true && int.TryParse(functionCall.Args["limit"]?.ToString(), out int lim)) limit = lim;
-
-                decimal? minPriceDecimal = minPrice.HasValue ? (decimal)minPrice.Value : (decimal?)null;
-                decimal? maxPriceDecimal = maxPrice.HasValue ? (decimal)maxPrice.Value : (decimal?)null;
-
-                var products = await _unitOfWork.Products.QueryProductsAsync(
-                    keyword,
-                    brand,
-                    categoryName,
-                    minPriceDecimal,
-                    maxPriceDecimal,
-                    sortBy,
-                    descending,
-                    limit
-                );
-
-                var searchResults = products.Select(p => new { 
-                                            name = p.Name, 
-                                            brand = p.Brand,
-                                            price = p.Price, 
-                                            stock = p.StockQuantity,
-                                            category = p.Category != null ? p.Category.Name : null,
-                                            description = p.Description
-                                        })
-                                        .ToList();
-
-                return await ExecuteSecondCallAsync(url, functionName, searchResults, userMessage, basePayload, modelResponseContent);
-            }
-
-            if (functionName == "get_product_specifications")
-            {
-                var productName = functionCall.Args?.ContainsKey("productName") == true ? functionCall.Args["productName"]?.ToString() ?? "" : "";
-                var products = await _unitOfWork.Products.GetProductsWithCategoryAsync();
-                var matchedProduct = products.FirstOrDefault(p => p.Name.Contains(productName, StringComparison.OrdinalIgnoreCase));
-                
-                object responseData;
-                if (matchedProduct != null)
-                {
-                    responseData = new
-                    {
-                        name = matchedProduct.Name,
-                        brand = matchedProduct.Brand,
-                        price = matchedProduct.Price,
-                        description = matchedProduct.Description,
-                        specifications = matchedProduct.Specifications?.Select(s => new { key = s.SpecKey, value = s.SpecValue }).ToList()
-                    };
-                }
-                else
-                {
-                    responseData = new { error = "Không tìm thấy sản phẩm tương ứng." };
-                }
-
-                return await ExecuteSecondCallAsync(url, functionName, responseData, userMessage, basePayload, modelResponseContent);
-            }
-
-            if (functionName == "get_order_status")
-            {
-                var orderIdStr = functionCall.Args?.ContainsKey("orderId") == true ? functionCall.Args["orderId"]?.ToString() ?? "" : "";
+                var functionName = functionCall.Name;
                 object responseData;
 
-                if (Guid.TryParse(orderIdStr, out Guid orderId))
+                if (functionName == "query_products" || functionName == "search_product")
                 {
-                    var order = await _unitOfWork.Orders.GetOrderByIdWithDetailsAsync(orderId);
-                    if (order != null)
+                    var keyword = functionCall.Args?.ContainsKey("keyword") == true ? functionCall.Args["keyword"]?.ToString() ?? "" : "";
+                    var brand = functionCall.Args?.ContainsKey("brand") == true ? functionCall.Args["brand"]?.ToString() ?? "" : "";
+                    var categoryName = functionCall.Args?.ContainsKey("categoryName") == true ? functionCall.Args["categoryName"]?.ToString() ?? "" : "";
+                    
+                    double? minPrice = null;
+                    if (functionCall.Args?.ContainsKey("minPrice") == true && double.TryParse(functionCall.Args["minPrice"]?.ToString(), out double minP)) minPrice = minP;
+
+                    double? maxPrice = null;
+                    if (functionCall.Args?.ContainsKey("maxPrice") == true && double.TryParse(functionCall.Args["maxPrice"]?.ToString(), out double maxP)) maxPrice = maxP;
+
+                    var sortBy = functionCall.Args?.ContainsKey("sortBy") == true ? functionCall.Args["sortBy"]?.ToString() ?? "" : "";
+                    
+                    bool descending = false;
+                    if (functionCall.Args?.ContainsKey("descending") == true && bool.TryParse(functionCall.Args["descending"]?.ToString(), out bool desc)) descending = desc;
+
+                    int limit = 10;
+                    if (functionCall.Args?.ContainsKey("limit") == true && int.TryParse(functionCall.Args["limit"]?.ToString(), out int lim)) limit = lim;
+
+                    decimal? minPriceDecimal = minPrice.HasValue ? (decimal)minPrice.Value : (decimal?)null;
+                    decimal? maxPriceDecimal = maxPrice.HasValue ? (decimal)maxPrice.Value : (decimal?)null;
+
+                    var products = await _unitOfWork.Products.QueryProductsAsync(
+                        keyword,
+                        brand,
+                        categoryName,
+                        minPriceDecimal,
+                        maxPriceDecimal,
+                        sortBy,
+                        descending,
+                        limit
+                    );
+
+                    responseData = products.Select(p => new { 
+                                                name = p.Name, 
+                                                brand = p.Brand,
+                                                price = p.Price, 
+                                                stock = p.StockQuantity,
+                                                category = p.Category != null ? p.Category.Name : null,
+                                                description = p.Description
+                                            })
+                                            .ToList();
+                }
+                else if (functionName == "get_product_specifications")
+                {
+                    var productName = functionCall.Args?.ContainsKey("productName") == true ? functionCall.Args["productName"]?.ToString() ?? "" : "";
+                    var products = await _unitOfWork.Products.GetProductsWithCategoryAsync();
+                    var matchedProduct = products.FirstOrDefault(p => p.Name.Contains(productName, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (matchedProduct != null)
                     {
                         responseData = new
                         {
-                            orderId = order.Id,
-                            orderDate = order.OrderDate,
-                            totalAmount = order.TotalAmount,
-                            status = order.Status,
-                            paymentStatus = order.PaymentStatus,
-                            shippingAddress = order.ShippingAddress,
-                            items = order.OrderDetails?.Select(d => new
-                            {
-                                productName = d.Product?.Name,
-                                quantity = d.Quantity,
-                                price = d.UnitPrice
-                            }).ToList()
+                            name = matchedProduct.Name,
+                            brand = matchedProduct.Brand,
+                            price = matchedProduct.Price,
+                            description = matchedProduct.Description,
+                            specifications = matchedProduct.Specifications?.Select(s => new { key = s.SpecKey, value = s.SpecValue }).ToList()
                         };
                     }
                     else
                     {
-                        responseData = new { error = "Không tìm thấy đơn hàng tương ứng với mã cung cấp." };
+                        responseData = new { error = $"Không tìm thấy cấu hình chi tiết cho sản phẩm: {productName}." };
                     }
                 }
-                else
+                else if (functionName == "get_order_status")
                 {
-                    responseData = new { error = "Mã đơn hàng không đúng định dạng Guid hợp lệ." };
-                }
-
-                return await ExecuteSecondCallAsync(url, functionName, responseData, userMessage, basePayload, modelResponseContent);
-            }
-
-            if (functionName == "cancel_order")
-            {
-                var orderIdStr = functionCall.Args?.ContainsKey("orderId") == true ? functionCall.Args["orderId"]?.ToString() ?? "" : "";
-                object responseData;
-
-                if (Guid.TryParse(orderIdStr, out Guid orderId))
-                {
-                    var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-                    if (order != null)
+                    var orderIdStr = functionCall.Args?.ContainsKey("orderId") == true ? functionCall.Args["orderId"]?.ToString() ?? "" : "";
+                    if (Guid.TryParse(orderIdStr, out Guid orderId))
                     {
-                        if (order.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                        var order = await _unitOfWork.Orders.GetOrderByIdWithDetailsAsync(orderId);
+                        if (order != null)
                         {
-                            order.Status = "Cancelled";
-                            order.PaymentStatus = "Cancelled";
-                            _unitOfWork.Orders.Update(order);
-                            await _unitOfWork.CompleteAsync();
-                            responseData = new { success = true, message = "Đơn hàng đã được hủy thành công." };
+                            responseData = new
+                            {
+                                orderId = order.Id,
+                                orderDate = order.OrderDate,
+                                totalAmount = order.TotalAmount,
+                                status = order.Status,
+                                paymentStatus = order.PaymentStatus,
+                                shippingAddress = order.ShippingAddress,
+                                items = order.OrderDetails?.Select(d => new
+                                {
+                                    productName = d.Product?.Name,
+                                    quantity = d.Quantity,
+                                    price = d.UnitPrice
+                                }).ToList()
+                            };
                         }
                         else
                         {
-                            responseData = new { success = false, error = $"Không thể hủy đơn hàng vì trạng thái đơn hàng hiện tại là: {order.Status}." };
+                            responseData = new { error = "Không tìm thấy đơn hàng tương ứng với mã cung cấp." };
                         }
                     }
                     else
                     {
-                        responseData = new { success = false, error = "Không tìm thấy đơn hàng tương ứng với mã cung cấp." };
+                        responseData = new { error = "Mã đơn hàng không đúng định dạng Guid hợp lệ." };
                     }
+                }
+                else if (functionName == "cancel_order")
+                {
+                    var orderIdStr = functionCall.Args?.ContainsKey("orderId") == true ? functionCall.Args["orderId"]?.ToString() ?? "" : "";
+                    if (Guid.TryParse(orderIdStr, out Guid orderId))
+                    {
+                        var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+                        if (order != null)
+                        {
+                            if (order.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                            {
+                                order.Status = "Cancelled";
+                                order.PaymentStatus = "Cancelled";
+                                _unitOfWork.Orders.Update(order);
+                                await _unitOfWork.CompleteAsync();
+                                responseData = new { success = true, message = "Đơn hàng đã được hủy thành công." };
+                            }
+                            else
+                            {
+                                responseData = new { success = false, error = $"Không thể hủy đơn hàng vì trạng thái đơn hàng hiện tại là: {order.Status}." };
+                            }
+                        }
+                        else
+                        {
+                            responseData = new { success = false, error = "Không tìm thấy đơn hàng tương ứng với mã cung cấp." };
+                        }
+                    }
+                    else
+                    {
+                        responseData = new { success = false, error = "Mã đơn hàng không đúng định dạng Guid hợp lệ." };
+                    }
+                }
+                else if (functionName == "escalate_to_human")
+                {
+                    responseData = new
+                    {
+                        status = "Escalated",
+                        message = "Hệ thống đang chuyển cuộc hội thoại của bạn đến nhân viên hỗ trợ trực tiếp. Vui lòng chờ."
+                    };
                 }
                 else
                 {
-                    responseData = new { success = false, error = "Mã đơn hàng không đúng định dạng Guid hợp lệ." };
+                    responseData = new { error = "Yêu cầu chức năng không được hỗ trợ." };
                 }
 
-                return await ExecuteSecondCallAsync(url, functionName, responseData, userMessage, basePayload, modelResponseContent);
-            }
-
-            if (functionName == "escalate_to_human")
-            {
-                var responseData = new
+                functionResponseParts.Add(new Part
                 {
-                    status = "Escalated",
-                    message = "Hệ thống đang chuyển cuộc hội thoại của bạn đến nhân viên hỗ trợ trực tiếp. Vui lòng chờ."
-                };
-                return await ExecuteSecondCallAsync(url, functionName, responseData, userMessage, basePayload, modelResponseContent);
+                    FunctionResponse = new FunctionResponse
+                    {
+                        Name = functionName,
+                        Response = new
+                        {
+                            name = functionName,
+                            content = responseData
+                        }
+                    }
+                });
             }
 
-            return new ChatResponse { Reply = "Yêu cầu chức năng không được hỗ trợ." };
-        }
-
-        private async Task<ChatResponse> ExecuteSecondCallAsync(
-            string url, 
-            string functionName, 
-            object responseData, 
-            string userMessage, 
-            GeminiRequest basePayload, 
-            Content modelResponseContent)
-        {
             var secondPayload = new GeminiRequest
             {
                 SystemInstruction = basePayload.SystemInstruction,
@@ -389,21 +379,7 @@ namespace TechStore.Service.Service
                     new Content
                     {
                         Role = "function",
-                        Parts = new List<Part>
-                        {
-                            new Part
-                            {
-                                FunctionResponse = new FunctionResponse
-                                {
-                                    Name = functionName,
-                                    Response = new
-                                    {
-                                        name = functionName,
-                                        content = responseData
-                                    }
-                                }
-                            }
-                        }
+                        Parts = functionResponseParts
                     }
                 }
             };
@@ -419,7 +395,8 @@ namespace TechStore.Service.Service
                 return new ChatResponse { Reply = finalReply ?? "Không có câu trả lời." };
             }
 
-            return new ChatResponse { Reply = "Lỗi khi xử lý function response từ AI." };
+            var errorDetails = await secondResponse.Content.ReadAsStringAsync();
+            return new ChatResponse { Reply = $"Xin lỗi, tôi gặp sự cố khi tổng hợp thông tin (Lỗi xử lý phản hồi hàm). Details: {errorDetails}" };
         }
     }
 }
