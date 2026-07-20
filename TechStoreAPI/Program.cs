@@ -1,12 +1,57 @@
+using Microsoft.Extensions.DependencyInjection;
+using TechStore.Repository.IRepositories;
+using TechStore.Repository.Repositories;
+using TechStore.Service.IService;
+using TechStore.Service.Service;
 using TechStoreAPI.config;
+using TechStoreAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .SetIsOriginAllowed((host) => true)
+              .AllowCredentials();
+    });
+});
+
 // Add services to the container.
 builder.Services.AddDatabase(builder.Configuration);
-builder.Services.AddControllers();
+
+// ── JWT Authentication (từ nhánh Auth) ───────────────────────────────────
+builder.Services.AddJwtConfiguration(builder.Configuration);
+
+// ── VNPay + Order services (từ nhánh checkout/billing) ───────────────────
+builder.Services.AddServices(builder.Configuration);
+
+// ── Dependency Injection (từ nhánh develop — Auth/Cart/Device/Email) ─────
+builder.Services.AddDependencyInjection(builder.Configuration);
+
+// ── Gemini Services ──────────────────────────────────────────────────────
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
+
+// ── Swagger (từ nhánh develop — có JWT Bearer) ───────────────────────────
+builder.Services.AddSwaggerConfiguration();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
+// ── Controllers + JSON options ────────────────────────────────────────────
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler =
+        System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
+
+builder.Services.AddAutoMapper(config =>
+{
+    config.AddMaps(typeof(Program).Assembly);
+});
 
 var app = builder.Build();
 
@@ -17,10 +62,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles();
 app.UseHttpsRedirection();
-
+app.UseCors("CorsPolicy");
+app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapHub<TechStoreAPI.Hubs.TrackingHub>("/trackingHub");
 app.MapControllers();
 
 app.Run();

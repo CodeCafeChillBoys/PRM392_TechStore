@@ -64,6 +64,89 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.KnowledgeItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("KnowledgeItems");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.LoginSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccessToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceType")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ExpiresIn")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FcmToken")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsOtpSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerifyToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("LoginSessions");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.Message", b =>
                 {
                     b.Property<Guid>("Id")
@@ -90,11 +173,65 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("Messages");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeliveryProofImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("timestamp with time zone");
@@ -103,9 +240,28 @@ namespace TechStore.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RefundImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RefundReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RefundRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<decimal>("ShippingFee")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("StaffId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -116,6 +272,9 @@ namespace TechStore.Repository.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("VnpayTransactionId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -214,6 +373,37 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("ProductSpecifications");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.RefreshToken", b =>
+                {
+                    b.Property<int>("RefreshTokenId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RefreshTokenId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("RefreshTokenId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -250,6 +440,151 @@ namespace TechStore.Repository.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.UserDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("DeviceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FcmToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserDevices");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.Wallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Balance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Wallets", t =>
+                        {
+                            t.HasCheckConstraint("CK_Wallets_Balance", "\"Balance\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.WalletTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountHolderName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("BalanceAfter")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("BalanceBefore")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VnpayTransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VnpayTransactionId")
+                        .IsUnique()
+                        .HasFilter("\"VnpayTransactionId\" IS NOT NULL");
+
+                    b.HasIndex("OrderId", "Type")
+                        .IsUnique()
+                        .HasFilter("\"OrderId\" IS NOT NULL");
+
+                    b.HasIndex("WalletId", "CreatedAt");
+
+                    b.ToTable("WalletTransactions", t =>
+                        {
+                            t.HasCheckConstraint("CK_WalletTransactions_Amount", "\"Amount\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.Cart", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.Product", "Product")
@@ -269,6 +604,17 @@ namespace TechStore.Repository.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.LoginSession", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.Message", b =>
                 {
                     b.HasOne("TechStore.Domain.Models.User", "Sender")
@@ -278,6 +624,15 @@ namespace TechStore.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.Notification", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TechStore.Domain.Models.Order", b =>
@@ -332,6 +687,57 @@ namespace TechStore.Repository.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("TechStore.Domain.Models.RefreshToken", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.UserDevice", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.Wallet", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.User", "User")
+                        .WithOne("Wallet")
+                        .HasForeignKey("TechStore.Domain.Models.Wallet", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.WalletTransaction", b =>
+                {
+                    b.HasOne("TechStore.Domain.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TechStore.Domain.Models.Wallet", "Wallet")
+                        .WithMany("Transactions")
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Wallet");
+                });
+
             modelBuilder.Entity("TechStore.Domain.Models.Category", b =>
                 {
                     b.Navigation("Products");
@@ -352,6 +758,13 @@ namespace TechStore.Repository.Migrations
                     b.Navigation("Carts");
 
                     b.Navigation("Orders");
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("TechStore.Domain.Models.Wallet", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }
