@@ -35,6 +35,11 @@ namespace TechStore.Service.Service
 
             // 2. Cập nhật thông tin đơn hàng
             order.Status = ShippingConstants.StatusDelivered;
+            // COD giao xong = đã thu tiền mặt → đánh dấu đã thanh toán.
+            if (order.PaymentStatus == "Pending")
+                order.PaymentStatus = "Paid";
+            // Ghi mốc giao hàng để tính cửa sổ hoàn tiền; chỉ set lần đầu để re-run không dời mốc.
+            order.DeliveredAt ??= DateTime.UtcNow;
             order.DeliveryProofImageUrl = $"/uploads/delivery-proofs/{uniqueFileName}";
 
             _unitOfWork.Orders.Update(order);

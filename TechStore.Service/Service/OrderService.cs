@@ -109,6 +109,16 @@ namespace TechStore.Service.Service
             else
             {
                 order.Status = newStatus;
+                // COD/khác Ví: giao xong = shipper đã thu tiền mặt → ghi nhận đã thanh toán.
+                if (newStatus.Equals("Delivered", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (order.PaymentStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                    {
+                        order.PaymentStatus = "Paid";
+                    }
+                    // Ghi mốc giao hàng để tính cửa sổ hoàn tiền; chỉ set lần đầu để re-run không dời mốc.
+                    order.DeliveredAt ??= DateTime.UtcNow;
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -218,6 +228,14 @@ namespace TechStore.Service.Service
             // 3. Calculate total
             decimal total = cartItems.Sum(c => c.Product!.Price * c.Quantity);
 
+            // Chặn thao túng giá: phí ship do FE gửi nên không tin tuyệt đối.
+            // Chặn số âm (trả ít hơn) và số vô lý (ship thực tế theo km chỉ vài trăm nghìn).
+            if (request.ShippingFee < 0 || request.ShippingFee > 10_000_000)
+                throw new InvalidOperationException("Phí ship không hợp lệ.");
+
+            // Tổng khách trả = tiền hàng + phí ship (khớp số FE hiển thị + số trừ ví).
+            total += request.ShippingFee;
+
             // 4. Wallet payments are completed immediately; other methods remain pending.
             bool isWallet = request.PaymentMethod.Equals("Wallet", StringComparison.OrdinalIgnoreCase);
             string orderStatus = isWallet ? "Confirmed" : "Pending";
@@ -230,6 +248,7 @@ namespace TechStore.Service.Service
                 UserId = request.UserId,
                 OrderDate = DateTime.UtcNow,
                 TotalAmount = total,
+                ShippingFee = request.ShippingFee,
                 ShippingAddress = request.ShippingAddress,
                 PaymentMethod = request.PaymentMethod,
                 Status = orderStatus,
