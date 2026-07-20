@@ -18,22 +18,14 @@ namespace TechStore.Service.IService
         Task UpdateOrderStatusAsync(Guid id, string newStatus);
         Task DeleteOrderAsync(Guid id);
 
-        // ── Checkout + VNPay (billing) ───────────────────────────────────────
+        // ── Checkout ─────────────────────────────────────────────────────────
 
         /// <summary>
         /// Converts the current user's cart into a confirmed order.
-        /// - COD/BankTransfer/CreditCard: validates, creates order, deducts stock, clears cart → returns CheckoutResult.Order only.
-        /// - VNPay: validates, creates order (PendingPayment), deducts stock, clears cart → returns CheckoutResult with PaymentUrl.
+        /// Wallet payments debit the authenticated user's wallet in the same database transaction
+        /// that creates the order, deducts stock and clears the cart.
         /// </summary>
-        Task<CheckoutResult> CheckoutAsync(CheckoutRequest request, string ipAddress);
-
-        /// <summary>
-        /// Called by the VNPay IPN/Return handler to finalize payment.
-        /// Sets PaymentStatus=Paid + Status=Confirmed on success,
-        /// or PaymentStatus=Failed + Status=Cancelled on failure.
-        /// Idempotent — safe to call multiple times.
-        /// </summary>
-        Task<bool> ConfirmVnpayPaymentAsync(Guid orderId, bool success, string transactionId);
+        Task<CheckoutResult> CheckoutAsync(CheckoutRequest request);
 
         // lấy lên đơn hàng đang giao vs shipperID 
         Task<IEnumerable<Guid>> GetActiveOrderIdsByShipperAsync(Guid shipperId);
@@ -41,5 +33,13 @@ namespace TechStore.Service.IService
         Task<bool> ConfirmDeliveryAsync(Guid orderId, IFormFile imageFile);
         // gán đơn hàng cho shipperId
         Task AssignShipperAsync(Guid orderId, Guid staffId);
+
+        // ── Refund (hoàn tiền về Ví) — TH2: hoàn sau khi đã giao ────────────────
+        // Khách gửi yêu cầu hoàn tiền cho đơn Delivered + Paid.
+        Task<bool> RequestRefundAsync(Guid orderId, Guid userId, string reason, IFormFile? image);
+        // Staff duyệt hoàn: cộng ví khách + cộng lại kho + PaymentStatus = Refunded.
+        Task<bool> ApproveRefundAsync(Guid orderId);
+        // Staff từ chối hoàn: về lại PaymentStatus = Paid.
+        Task<bool> RejectRefundAsync(Guid orderId);
     }
 }

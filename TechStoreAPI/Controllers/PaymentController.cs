@@ -1,6 +1,5 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using TechStore.Domain.Enum;
 using TechStore.Service.IService;
 
 namespace TechStoreAPI.Controllers
@@ -10,124 +9,137 @@ namespace TechStoreAPI.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly IVnpayService _vnpayService;
-        private readonly IOrderService _orderService;
+        private readonly IWalletService _walletService;
         private readonly ILogger<PaymentController> _logger;
 
         public PaymentController(
             IVnpayService vnpayService,
-            IOrderService orderService,
+            IWalletService walletService,
             ILogger<PaymentController> logger)
         {
             _vnpayService = vnpayService;
-            _orderService = orderService;
+            _walletService = walletService;
             _logger = logger;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // GET /api/payment/vnpay-return
-        // VNPay redirects the USER's browser here after payment.
-        // Returns a JSON response containing order status details.
-        // NOTE: DB update happens here as fallback; IPN is the primary source.
-        // ─────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// VNPay redirects the user's browser here after a wallet top-up.
+        /// The IPN endpoint remains the authoritative server-to-server callback.
+        /// </summary>
         [HttpGet("vnpay-return")]
         public async Task<IActionResult> VnpayReturn()
         {
             var isValidSignature = _vnpayService.ValidateSignature(
                 Request.QueryString.Value ?? string.Empty,
                 out var responseCode,
-                out var transactionId,
-                out var orderIdStr);
+                out var vnpayTransactionId,
+                out var transactionReference);
 
             if (!isValidSignature)
             {
                 _logger.LogWarning("VNPay Return: invalid signature. Query: {Query}", Request.QueryString);
-                return BadRequest(new { success = false, message = "Chữ ký không hợp lệ. Giao dịch có thể bị giả mạo." });
+                return BadRequest(new { success = false, message = "Chữ ký VNPay không hợp lệ." });
             }
 
-            bool isPaid = responseCode == "00";
+            if (!Guid.TryParse(transactionReference, out var transactionId))
+                return BadRequest(new { success = false, message = "Mã giao dịch nạp ví không hợp lệ." });
 
-            // Parse amount from query (VNPay sends amount * 100)
-            var rawAmount = Request.Query["vnp_Amount"].ToString();
-            var amountDisplay = long.TryParse(rawAmount, out var amtRaw)
-                ? $"{amtRaw / 100:N0} VND"
-                : rawAmount;
+            if (!TryGetPaidAmount(out var paidAmount))
+                return BadRequest(new { success = false, message = "Số tiền VNPay trả về không hợp lệ." });
+
+            var isPaid = IsSuccessfulVnpayPayment(responseCode);
+            var result = await _walletService.ConfirmTopUpAsync(
+                transactionId,
+                isPaid,
+                vnpayTransactionId,
+                paidAmount);
+
+            var topUpSucceeded = isPaid && result is
+                TopUpConfirmationStatus.Completed or TopUpConfirmationStatus.AlreadyProcessed;
 
             _logger.LogInformation(
-                "VNPay Return — OrderId: {OrderId}, ResponseCode: {Code}, TxnId: {TxnId}, Paid: {IsPaid}",
-                orderIdStr, responseCode, transactionId, isPaid);
+                "VNPay wallet return processed — TransactionId: {TransactionId}, VnpayTransactionId: {VnpayTransactionId}, Result: {Result}",
+                transactionId,
+                vnpayTransactionId,
+                result);
 
-            if (!Guid.TryParse(orderIdStr, out var orderId))
-            {
-                return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ." });
-            }
-
-            // Update DB (fallback — IPN is primary)
-            await _orderService.ConfirmVnpayPaymentAsync(orderId, isPaid, transactionId);
-
-            double amount = 0;
-            if (long.TryParse(Request.Query["vnp_Amount"].ToString(), out var returnAmtRaw))
-            {
-                amount = (double)returnAmtRaw / 100;
-            }
-
-            var flutterDeepLink = $"techstore://payment-result?success={isPaid.ToString().ToLower()}&orderId={orderIdStr}&amount={amount}&paymentMethod=VNPay";
-            return Redirect(flutterDeepLink);
+            var deepLink =
+                $"techstore://wallet-topup-result?success={topUpSucceeded.ToString().ToLowerInvariant()}" +
+                $"&transactionId={transactionId}&amount={paidAmount:0}&paymentMethod=VNPay";
+            return Redirect(deepLink);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // GET /api/payment/vnpay-ipn
-        // VNPay server calls this endpoint directly (server-to-server).
-        // This is the AUTHORITATIVE source — always update DB here.
-        // Must respond within 5 seconds with specific JSON format.
-        // ─────────────────────────────────────────────────────────────────────
+        /// <summary>VNPay's authoritative server-to-server callback for wallet top-ups.</summary>
         [HttpGet("vnpay-ipn")]
         public async Task<IActionResult> VnpayIpn()
         {
-            const string rspCodeOk       = "00";
-            const string rspCodeInvalid  = "97";
-            const string rspCodeNotFound = "01";
-            const string rspCodeError    = "99";
+            const string responseOk = "00";
+            const string responseNotFound = "01";
+            const string responseInvalidAmount = "04";
+            const string responseInvalidSignature = "97";
+            const string responseError = "99";
 
             try
             {
                 var isValidSignature = _vnpayService.ValidateSignature(
                     Request.QueryString.Value ?? string.Empty,
                     out var responseCode,
-                    out var transactionId,
-                    out var orderIdStr);
+                    out var vnpayTransactionId,
+                    out var transactionReference);
 
                 if (!isValidSignature)
                 {
                     _logger.LogWarning("VNPay IPN: invalid signature from IP {IP}", HttpContext.Connection.RemoteIpAddress);
-                    return Ok(new { RspCode = rspCodeInvalid, Message = "Invalid Checksum" });
+                    return Ok(new { RspCode = responseInvalidSignature, Message = "Invalid Checksum" });
                 }
 
-                if (!Guid.TryParse(orderIdStr, out var orderId))
-                {
-                    _logger.LogWarning("VNPay IPN: unparseable orderId '{OrderId}'", orderIdStr);
-                    return Ok(new { RspCode = rspCodeNotFound, Message = "Order not found" });
-                }
+                if (!Guid.TryParse(transactionReference, out var transactionId))
+                    return Ok(new { RspCode = responseNotFound, Message = "Transaction not found" });
 
-                bool isPaid = responseCode == "00";
-                var updated = await _orderService.ConfirmVnpayPaymentAsync(orderId, isPaid, transactionId);
+                if (!TryGetPaidAmount(out var paidAmount))
+                    return Ok(new { RspCode = responseInvalidAmount, Message = "Invalid amount" });
 
-                if (!updated)
-                {
-                    _logger.LogWarning("VNPay IPN: order {OrderId} not found in DB", orderId);
-                    return Ok(new { RspCode = rspCodeNotFound, Message = "Order not found" });
-                }
+                var result = await _walletService.ConfirmTopUpAsync(
+                    transactionId,
+                    IsSuccessfulVnpayPayment(responseCode),
+                    vnpayTransactionId,
+                    paidAmount);
 
                 _logger.LogInformation(
-                    "VNPay IPN processed — OrderId: {OrderId}, TxnId: {TxnId}, Paid: {IsPaid}",
-                    orderId, transactionId, isPaid);
+                    "VNPay wallet IPN processed — TransactionId: {TransactionId}, VnpayTransactionId: {VnpayTransactionId}, Result: {Result}",
+                    transactionId,
+                    vnpayTransactionId,
+                    result);
 
-                return Ok(new { RspCode = rspCodeOk, Message = "Confirm Success" });
+                return result switch
+                {
+                    TopUpConfirmationStatus.NotFound =>
+                        Ok(new { RspCode = responseNotFound, Message = "Transaction not found" }),
+                    TopUpConfirmationStatus.AmountMismatch =>
+                        Ok(new { RspCode = responseInvalidAmount, Message = "Invalid amount" }),
+                    _ => Ok(new { RspCode = responseOk, Message = "Confirm Success" })
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "VNPay IPN unexpected error.");
-                return Ok(new { RspCode = rspCodeError, Message = "Unknown error" });
+                _logger.LogError(ex, "VNPay wallet IPN unexpected error.");
+                return Ok(new { RspCode = responseError, Message = "Unknown error" });
             }
+        }
+
+        private bool TryGetPaidAmount(out decimal amount)
+        {
+            amount = 0;
+            return long.TryParse(Request.Query["vnp_Amount"].ToString(), out var rawAmount) &&
+                   rawAmount > 0 &&
+                   (amount = rawAmount / 100m) > 0;
+        }
+
+        private bool IsSuccessfulVnpayPayment(string responseCode)
+        {
+            var transactionStatus = Request.Query["vnp_TransactionStatus"].ToString();
+            return responseCode == "00" &&
+                   (string.IsNullOrEmpty(transactionStatus) || transactionStatus == "00");
         }
     }
 }

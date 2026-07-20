@@ -28,5 +28,6 @@ namespace TechStore.Domain.Models
 
         public ICollection<Cart> Carts { get; set; }
         public ICollection<Order> Orders { get; set; }
+        public Wallet? Wallet { get; set; }
     }
 }

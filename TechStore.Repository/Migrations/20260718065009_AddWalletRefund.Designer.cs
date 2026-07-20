@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TechStore.Repository.Data;
@@ -11,9 +12,11 @@ using TechStore.Repository.Data;
 namespace TechStore.Repository.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260718065009_AddWalletRefund")]
+    partial class AddWalletRefund
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -221,9 +224,6 @@ namespace TechStore.Repository.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("DeliveredAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("DeliveryProofImageUrl")
                         .HasColumnType("text");
 
@@ -244,21 +244,9 @@ namespace TechStore.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("RefundImageUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("RefundReason")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("RefundRequestedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<decimal>("ShippingFee")
-                        .HasColumnType("numeric");
 
                     b.Property<Guid?>("StaffId")
                         .HasColumnType("uuid");

@@ -21,11 +21,16 @@ namespace TechStore.Domain.Models
 
         /// <summary>
         /// Payment status independent of order status.
-        /// Values: Pending | Paid | Failed | Cancelled
+        /// Values: Pending | Paid | Failed | Cancelled | Refunded
         /// </summary>
         public string PaymentStatus { get; set; } = "Pending";
 
-      
+        /// <summary>Phí ship khách trả (đã gồm trong TotalAmount). 0 với đơn cũ.</summary>
+        public decimal ShippingFee { get; set; } = 0;
+
+        /// <summary>
+        /// VNPay transaction number (vnp_TransactionNo) — null for COD/BankTransfer.
+        /// </summary>
         public string? VnpayTransactionId { get; set; }
 
         public User User { get; set; }
@@ -37,15 +42,12 @@ namespace TechStore.Domain.Models
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
 
-        /// <summary>
-        /// Phi van chuyen cua don (khach tra) — nen tang tinh hoa hong shipper.
-        /// Khop migration AddShippingFeeAndVehicleToOrder (numeric, default 0).
-        /// </summary>
-        public decimal ShippingFee { get; set; }
+        // ── Hoàn tiền (refund) — TH2: hoàn sau khi đã giao ──
+        public string? RefundReason { get; set; }
+        public string? RefundImageUrl { get; set; }
+        public DateTime? RefundRequestedAt { get; set; }
 
-        /// <summary>
-        /// Loai xe shipper giao don nay (nullable — chua gan khi moi tao don).
-        /// </summary>
-        public string? ShipperVehicle { get; set; }
+        /// <summary>Thời điểm đơn được giao thành công — mốc tính cửa sổ hoàn tiền 1 ngày.</summary>
+        public DateTime? DeliveredAt { get; set; }
     }
 }

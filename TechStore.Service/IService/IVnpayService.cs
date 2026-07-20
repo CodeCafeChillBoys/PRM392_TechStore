@@ -1,17 +1,20 @@
-using Microsoft.AspNetCore.Http;
-using TechStore.Domain.Models;
-
 namespace TechStore.Service.IService
 {
     public interface IVnpayService
     {
         /// <summary>
-        /// Builds a signed VNPay payment URL for the given order.
+        /// Builds a signed VNPay payment URL for a wallet top-up transaction.
         /// </summary>
-        /// <param name="order">The order to pay for.</param>
+        /// <param name="transactionReference">Wallet transaction ID used as vnp_TxnRef.</param>
+        /// <param name="amount">Top-up amount in VND.</param>
+        /// <param name="description">VNPay order information.</param>
         /// <param name="ipAddress">Client IP address (required by VNPay).</param>
         /// <returns>Full payment URL including HMAC-SHA512 signature.</returns>
-        string CreatePaymentUrl(Order order, string ipAddress);
+        string CreatePaymentUrl(
+            Guid transactionReference,
+            decimal amount,
+            string description,
+            string ipAddress);
 
         /// <summary>
         /// Validates the HMAC-SHA512 signature on the VNPay callback query string.
@@ -20,13 +23,13 @@ namespace TechStore.Service.IService
         /// </summary>
         /// <param name="rawQueryString">Raw query string from Request.QueryString.Value (e.g. "?vnp_Amount=...&vnp_SecureHash=...").</param>
         /// <param name="responseCode">vnp_ResponseCode: "00" = success.</param>
-        /// <param name="transactionId">vnp_TransactionNo returned by VNPay.</param>
-        /// <param name="orderId">vnp_TxnRef = our Order.Id as string.</param>
+        /// <param name="vnpayTransactionId">vnp_TransactionNo returned by VNPay.</param>
+        /// <param name="transactionReference">vnp_TxnRef = our WalletTransaction.Id as string.</param>
         /// <returns>True if the signature is valid (not tampered).</returns>
         bool ValidateSignature(
             string rawQueryString,
             out string responseCode,
-            out string transactionId,
-            out string orderId);
+            out string vnpayTransactionId,
+            out string transactionReference);
     }
 }

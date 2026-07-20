@@ -122,7 +122,13 @@ namespace TechStore.Service.Service
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
                 CreatedAt = DateTime.UtcNow,
-                PhoneNumber = request.PhoneNumber
+                PhoneNumber = request.PhoneNumber,
+                Wallet = new Wallet
+                {
+                    Balance = 0,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
             };
 
             await _unitOfWork.Users.AddAsync(newUser);
