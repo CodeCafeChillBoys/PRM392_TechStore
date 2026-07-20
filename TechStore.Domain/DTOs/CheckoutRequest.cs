@@ -17,10 +17,7 @@ namespace TechStore.Domain.DTOs
             ErrorMessage = "PaymentMethod must be one of: COD, BankTransfer, CreditCard, Wallet.")]
         public string PaymentMethod { get; set; } = "COD";
 
-        /// <summary>
-        /// The ID of the user placing the order.
-        /// (Will be replaced by JWT claim once auth is added.)
-        /// </summary>
+        
         [Required]
         public Guid UserId { get; set; }
 

@@ -41,6 +41,13 @@ namespace TechStoreAPI.Mappings
                 .ForMember(dest => dest.Icon, opt => opt.MapFrom(src => src.Icon.ToString().ToLower()))
                 .ForMember(dest => dest.Tone, opt => opt.MapFrom(src => src.Tone.ToString().ToLower()))
                 .ForMember(dest => dest.Time, opt => opt.MapFrom(src => GetFriendlyTime(src.CreatedAt)));
+
+            // Admin — Role enum tu convert sang string theo ten.
+            CreateMap<User, UserSummaryDTO>();
+            CreateMap<LoginSession, LoginSessionInfoDTO>()
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty))
+                .ForMember(dest => dest.CustomerEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : string.Empty));
+            CreateMap<UserDevice, DeviceInfoDTO>();
         }
 
         private static string GetFriendlyTime(DateTime dateTime)

@@ -227,6 +227,8 @@ namespace TechStore.Service.Service
 
             // 3. Calculate total
             decimal total = cartItems.Sum(c => c.Product!.Price * c.Quantity);
+            // Tổng khách trả = tiền hàng + phí ship — khớp số FE hiển thị và số VNPay thu.
+            total += request.ShippingFee;
 
             // Chặn thao túng giá: phí ship do FE gửi nên không tin tuyệt đối.
             // Chặn số âm (trả ít hơn) và số vô lý (ship thực tế theo km chỉ vài trăm nghìn).
@@ -252,7 +254,8 @@ namespace TechStore.Service.Service
                 ShippingAddress = request.ShippingAddress,
                 PaymentMethod = request.PaymentMethod,
                 Status = orderStatus,
-                PaymentStatus = paymentStatus
+                PaymentStatus = paymentStatus,
+                ShippingFee = request.ShippingFee,
             };
 
             // 6. Create OrderDetail entities
